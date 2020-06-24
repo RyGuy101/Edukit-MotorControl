@@ -1,0 +1,14 @@
+main.c:569:6:rotor_position_set	16	static
+main.c:582:5:rotor_position_read	24	static
+main.c:610:5:encoder_position_read	24	static
+main.c:638:6:pid_filter_value_config	16	static
+main.c:650:6:pid_filter_control_execute	56	static
+main.c:712:6:read_float	48	static
+main.c:735:6:read_int	40	static
+main.c:759:6:read_char	40	static
+main.c:782:5:main	1640	static
+main.c:4974:10:Extract_Msg	32	static
+main.c:5011:13:MX_TIM3_Init	56	static
+main.c:5045:13:MX_USART2_UART_Init	16	static
+main.c:5085:6:MyFlagInterruptHandler	16	static
+main.c:5150:6:Error_Handler	16	static
