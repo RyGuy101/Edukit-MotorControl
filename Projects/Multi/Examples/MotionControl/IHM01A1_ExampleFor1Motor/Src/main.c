@@ -287,7 +287,7 @@ static void MX_USART2_UART_Init(void);
 #define PRIMARY_WINDUP_LIMIT 100				// Integrator wind up limits for PID controllers
 #define SECONDARY_WINDUP_LIMIT 100				// Integrator wind up limits for PID controllers
 
-#define ENABLE_LIMITER 1
+#define ENABLE_LIMITER 0
 #define LIMITER_THRESHOLD 2
 #define LIMITER_SLOPE 8
 
@@ -562,6 +562,99 @@ typedef struct {
 	float control_output;
 } pid_filter_control_parameters;
 
+/// PWM period variables used by step interrupt
+volatile uint32_t desired_pwm_period = 0;
+volatile uint32_t current_pwm_period = 0;
+
+/*
+ * Apply acceleration
+ */
+#define PWM_COUNT_SAFETY_MARGIN 4
+#define MAXIMUM_ACCELERATION 20000
+#define MAXIMUM_DECELERATION 20000
+#define MIN_POSSIBLE_SPEED 2 // Should be at least 2, as per L6474_MIN_PWM_FREQ in l6474.c
+#define MAXIMUM_SPEED 1000
+void apply_acceleration(int32_t acc, int32_t* target_velocity, uint8_t dt_ms) {
+	uint32_t current_pwm_period_local = current_pwm_period;
+	uint32_t desired_pwm_period_local = desired_pwm_period;
+
+	if (acc > MAXIMUM_ACCELERATION) {
+		acc = MAXIMUM_ACCELERATION;
+	} else if (acc < -MAXIMUM_DECELERATION) {
+		acc = -MAXIMUM_DECELERATION;
+	}
+
+	motorDir_t old_dir = *target_velocity > 0 ? FORWARD : BACKWARD;
+	*target_velocity += (acc << 12) / (1000 / dt_ms);
+	motorDir_t new_dir = *target_velocity > 0 ? FORWARD : BACKWARD;
+
+	uint16_t speed;
+	if (new_dir == FORWARD) {
+		if (*target_velocity < (MIN_POSSIBLE_SPEED << 12)) {
+			*target_velocity = (MIN_POSSIBLE_SPEED << 12);
+		} else if (*target_velocity > (MAXIMUM_SPEED << 12)) {
+			*target_velocity = (MAXIMUM_SPEED << 12);
+		}
+		speed = (uint16_t) (*target_velocity >> 12);
+	} else {
+		if (*target_velocity > -(MIN_POSSIBLE_SPEED << 12)) {
+			*target_velocity = -(MIN_POSSIBLE_SPEED << 12);
+		} else if (*target_velocity < -(MAXIMUM_SPEED << 12)) {
+			*target_velocity = -(MAXIMUM_SPEED << 12);
+		}
+		speed = (uint16_t) (*target_velocity*(-1) >> 12);
+	}
+	uint32_t effective_pwm_period = desired_pwm_period_local;
+	desired_pwm_period_local = L6474_Board_Pwm1CalcPeriod(speed);
+
+	if (old_dir != new_dir) {
+		L6474_Board_SetDirectionGpio(0, new_dir);
+	}
+
+	if (current_pwm_period_local != 0) {
+		uint32_t pwm_count = L6474_Board_Pwm1GetCounter();
+		uint32_t pwm_time_left = current_pwm_period_local - pwm_count;
+		if (pwm_time_left > PWM_COUNT_SAFETY_MARGIN) {
+			uint32_t new_pwm_time_left = pwm_time_left * desired_pwm_period_local / effective_pwm_period;
+			if (new_pwm_time_left != pwm_time_left) {
+				if (new_pwm_time_left < PWM_COUNT_SAFETY_MARGIN) {
+					new_pwm_time_left = PWM_COUNT_SAFETY_MARGIN;
+				}
+				current_pwm_period_local = pwm_count + new_pwm_time_left;
+				L6474_Board_Pwm1SetPeriod(current_pwm_period_local);
+				current_pwm_period = current_pwm_period_local;
+			}
+			// Test Code:
+			// uint32_t updated_pwm_count = L6474_Board_Pwm1GetCounter();
+			// if (updated_pwm_count - pwm_count >= PWM_COUNT_SAFETY_MARGIN) {
+			// 	char msg[100];
+			// 	if (updated_pwm_count < pwm_count) {
+			// 		sprintf(msg, "PWM_COUNT_SAFETY_MARGIN is too small! The next pulse already started!\r\n");
+			// 	} else {
+			// 		sprintf(msg, "PWM_COUNT_SAFETY_MARGIN is too small! It should be at least %ld\r\n", updated_pwm_count - pwm_count + 1);
+			// 	}
+			// 	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+			// }
+		}
+	} else {
+		L6474_Board_Pwm1SetPeriod(desired_pwm_period_local);
+		current_pwm_period = desired_pwm_period_local;
+	}
+
+	desired_pwm_period = desired_pwm_period_local;
+}
+
+/*
+ * PWM pulse (step) interrupt
+ */
+void Main_StepClockHandler() {
+	uint32_t desired_pwm_period_local = desired_pwm_period;
+	if (desired_pwm_period_local != 0) {
+		L6474_Board_Pwm1SetPeriod(desired_pwm_period_local);
+		current_pwm_period = desired_pwm_period_local;
+	}
+}
+
 /*
  * Rotor position set
  */
@@ -798,10 +891,10 @@ int main(void) {
 	uint32_t readBytes;
 
 	int rotor_position_target = 0;
-	int rotor_position_target_curr = 0;
+//	int rotor_position_target_curr = 0;
 	int rotor_position_target_prev = 0;
 
-	int rotor_position_delta;
+//	int rotor_position_delta;
 	int cycle_count;
 	int i, j, k, m;
 	int ret;
@@ -3776,6 +3869,9 @@ int main(void) {
  *
  * *************************************************************************************************
  */
+		BSP_MotorControl_HardStop(0);
+		L6474_CmdEnable(0);
+		int32_t target_velocity = 0;
 
 		while (enable_pid == 1) {
 
@@ -4910,36 +5006,38 @@ int main(void) {
 
 			HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 			}
-			/*
-			 * Limit maximum excursion in rotor angle at each cycle step
-			 */
-
-			rotor_position_delta = ROTOR_POSITION_MAX_DIFF;
-			rotor_position_target_curr = rotor_position_target;
-			if ((rotor_position_target_curr - rotor_position_target_prev)
-					< -rotor_position_delta) {
-				rotor_position_target = rotor_position_target_prev
-						- rotor_position_delta;
-			} else if ((rotor_position_target_curr - rotor_position_target_prev)
-					> rotor_position_delta) {
-				rotor_position_target = rotor_position_target_prev
-						+ rotor_position_delta;
-			}
+//			/*
+//			 * Limit maximum excursion in rotor angle at each cycle step
+//			 */
+//
+//			rotor_position_delta = ROTOR_POSITION_MAX_DIFF;
+//			rotor_position_target_curr = rotor_position_target;
+//			if ((rotor_position_target_curr - rotor_position_target_prev)
+//					< -rotor_position_delta) {
+//				rotor_position_target = rotor_position_target_prev
+//						- rotor_position_delta;
+//			} else if ((rotor_position_target_curr - rotor_position_target_prev)
+//					> rotor_position_delta) {
+//				rotor_position_target = rotor_position_target_prev
+//						+ rotor_position_delta;
+//			}
 
 			rotor_position_target_prev = rotor_position_target;
 			rotor_position_command_prev = rotor_position_command;
 
-			ret = rotor_position_read(&rotor_position_initial);
-			BSP_MotorControl_GoTo(0, -rotor_position_initial + rotor_position_target);
+//			ret = rotor_position_read(&rotor_position_initial);
+//			BSP_MotorControl_GoTo(0, -rotor_position_initial + rotor_position_target);
 
-
-
+			apply_acceleration(rotor_position_target * STEPPER_READ_POSITION_STEPS_PER_DEGREE, &target_velocity, 2);
 
 		}
 
 	/*
 	 * Control System Exit Loop
 	 */
+
+		desired_pwm_period = 0;
+		current_pwm_period = 0;
 
 		/*
 		 * Restore rotor position at low speed profile

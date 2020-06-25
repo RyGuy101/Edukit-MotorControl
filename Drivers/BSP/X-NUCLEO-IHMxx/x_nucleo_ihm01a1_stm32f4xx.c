@@ -215,6 +215,39 @@ void L6474_Board_GpioInit(uint8_t deviceId)
 }
 
 /******************************************************//**
+ * @brief  Returns the current value of the counter used by PWM1, used by device 0
+ * @retval the counter value
+ **********************************************************/
+uint32_t L6474_Board_Pwm1GetCounter() {
+	return hTimPwm1.Instance->CNT;
+}
+
+/******************************************************//**
+ * @brief  Calculates the period in counter increments for a given frequency
+ * @retval period in counter increments
+ **********************************************************/
+uint32_t L6474_Board_Pwm1CalcPeriod(uint16_t freq)
+{
+  uint32_t sysFreq = HAL_RCC_GetSysClockFreq();
+  return sysFreq/ (TIMER_PRESCALER * BSP_MOTOR_CONTROL_BOARD_PWM1_FREQ_RESCALER * (uint32_t)freq);
+}
+
+
+/******************************************************//**
+ * @brief  Sets the period of PWM1 used by device 0
+ * @param[in] period in counter increments
+ * @retval None
+ **********************************************************/
+void L6474_Board_Pwm1SetPeriod(uint32_t period)
+{
+  __HAL_TIM_SetAutoreload(&hTimPwm1, period-1);
+//  __HAL_TIM_SetCompare(&hTimPwm1, BSP_MOTOR_CONTROL_BOARD_CHAN_TIMER_PWM1, period >> 1);
+  if (hTimPwm1.Instance->CCER == 0) { // Check if a capture compare channel has not been enabled yet
+	  HAL_TIM_PWM_Start_IT(&hTimPwm1, BSP_MOTOR_CONTROL_BOARD_CHAN_TIMER_PWM1);
+  }
+}
+
+/******************************************************//**
  * @brief  Sets the frequency of PWM1 used by device 0
  * @param[in] newFreq in Hz
  * @retval None
@@ -226,8 +259,10 @@ void L6474_Board_Pwm1SetFreq(uint16_t newFreq)
   uint32_t period = (sysFreq/ (TIMER_PRESCALER * BSP_MOTOR_CONTROL_BOARD_PWM1_FREQ_RESCALER * (uint32_t)newFreq)) - 1;
   
   __HAL_TIM_SetAutoreload(&hTimPwm1, period);
-  __HAL_TIM_SetCompare(&hTimPwm1, BSP_MOTOR_CONTROL_BOARD_CHAN_TIMER_PWM1, period >> 1);
-  HAL_TIM_PWM_Start_IT(&hTimPwm1, BSP_MOTOR_CONTROL_BOARD_CHAN_TIMER_PWM1);  
+//  __HAL_TIM_SetCompare(&hTimPwm1, BSP_MOTOR_CONTROL_BOARD_CHAN_TIMER_PWM1, period >> 1);
+  if (hTimPwm1.Instance->CCER == 0) { // Check if a capture compare channel has not been enabled yet
+	  HAL_TIM_PWM_Start_IT(&hTimPwm1, BSP_MOTOR_CONTROL_BOARD_CHAN_TIMER_PWM1);
+  }
 }
 
 /******************************************************//**
