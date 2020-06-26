@@ -2529,7 +2529,7 @@ int main(void) {
 						sprintf(msg, "\n\rEnter 1 to Enable Pendulum Impulse; 0 to Disable: ");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 						read_int(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx, &readBytes, &enable_pendulum_position_impulse_response_cycle);
-						sprintf(msg, "%i", enable_mod_sin_rotor_tracking);
+						sprintf(msg, "%i", enable_pendulum_position_impulse_response_cycle);
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 
 						if (enable_rotor_position_step_response_cycle == 1) {
