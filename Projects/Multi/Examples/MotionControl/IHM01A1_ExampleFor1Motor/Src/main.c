@@ -3710,13 +3710,13 @@ int main(void) {
 		* counter clockwise rotation by Motor Position displacement prompt
 		*
 		*/
-		BSP_MotorControl_GoTo(0, 40);
+		BSP_MotorControl_GoTo(0, 30);
 		BSP_MotorControl_WaitWhileActive(0);
 		HAL_Delay(150);
-		BSP_MotorControl_GoTo(0, -40);
+		BSP_MotorControl_GoTo(0, -30);
 		BSP_MotorControl_WaitWhileActive(0);
 		HAL_Delay(150);
-		BSP_MotorControl_GoTo(0, 40);
+		BSP_MotorControl_GoTo(0, 30);
 		BSP_MotorControl_WaitWhileActive(0);
 		HAL_Delay(150);
 		BSP_MotorControl_GoTo(0, 0);
