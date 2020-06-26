@@ -923,7 +923,7 @@ int main(void) {
 	float proportional, rotor_p_gain;
 	float integral, rotor_i_gain;
 	float derivative, rotor_d_gain;
-	int rotor_position, rotor_position_initial;
+	int rotor_position;
 	float rotor_position_command;
 	int encoder_position = 0, encoder_position_down = 0;
 	int encoder_position_curr = 0, encoder_position_prev = 0;
@@ -3073,7 +3073,6 @@ int main(void) {
 			 */
 
 			rotor_position_set();
-			ret = rotor_position_read(&rotor_position_initial);
 			test_time = HAL_GetTick() - tick_cycle_start;
 
 			rotor_chirp_step_period = (int) (rotor_chirp_period * 240.0);
@@ -3281,10 +3280,7 @@ int main(void) {
 					}
 
 					current_speed = BSP_MotorControl_GetCurrentSpeed(0);
-					ret = rotor_position_read(&rotor_position_initial);
-					BSP_MotorControl_GoTo(0,
-							-rotor_position_initial
-									+ (int) (rotor_position_command));
+					BSP_MotorControl_GoTo(0, (int) (rotor_position_command));
 
 					if (BSP_MotorControl_GetDeviceState(0) == ACCELERATING) {
 						motor_state = 1;
@@ -3411,8 +3407,7 @@ int main(void) {
 					sprintf(msg, "%0.3f", rotor_position_command);
 					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 
-					ret = rotor_position_read(&rotor_position_initial);
-					BSP_MotorControl_GoTo(0, -rotor_position_initial + (int)(rotor_position_command*STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE));
+					BSP_MotorControl_GoTo(0, (int)(rotor_position_command*STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE));
 					BSP_MotorControl_WaitWhileActive(0);
 
 					ret = rotor_position_read(&rotor_position);
@@ -3488,8 +3483,7 @@ int main(void) {
 				HAL_Delay(3000);
 
 				rotor_position_command = -45;
-				ret = rotor_position_read(&rotor_position_initial);
-				BSP_MotorControl_GoTo(0, -rotor_position_initial + (int)(rotor_position_command*STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE));
+				BSP_MotorControl_GoTo(0, (int)(rotor_position_command*STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE));
 				BSP_MotorControl_WaitWhileActive(0);
 
 				ret = rotor_position_read(&rotor_position);
@@ -3505,8 +3499,7 @@ int main(void) {
 				HAL_Delay(3000);
 
 				rotor_position_command = 0;
-				ret = rotor_position_read(&rotor_position_initial);
-				BSP_MotorControl_GoTo(0, -rotor_position_initial + (int)(rotor_position_command*STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE));
+				BSP_MotorControl_GoTo(0, (int)(rotor_position_command*STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE));
 				BSP_MotorControl_WaitWhileActive(0);
 
 				ret = rotor_position_read(&rotor_position);
@@ -3522,8 +3515,7 @@ int main(void) {
 				HAL_Delay(3000);
 
 				rotor_position_command = 90;
-				ret = rotor_position_read(&rotor_position_initial);
-				BSP_MotorControl_GoTo(0, -rotor_position_initial + (int)(rotor_position_command*STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE));
+				BSP_MotorControl_GoTo(0, (int)(rotor_position_command*STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE));
 				BSP_MotorControl_WaitWhileActive(0);
 
 				ret = rotor_position_read(&rotor_position);
@@ -3539,8 +3531,7 @@ int main(void) {
 				HAL_Delay(3000);
 
 				rotor_position_command = 0;
-				ret = rotor_position_read(&rotor_position_initial);
-				BSP_MotorControl_GoTo(0, -rotor_position_initial + (int)(rotor_position_command*STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE));
+				BSP_MotorControl_GoTo(0, (int)(rotor_position_command*STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE));
 				BSP_MotorControl_WaitWhileActive(0);
 
 				ret = rotor_position_read(&rotor_position);
@@ -3887,11 +3878,6 @@ int main(void) {
 		noise_rej_signal_prev = 0;
 		noise_rej_signal_filter_prev = 0;
 
-
-		/*
-		 * Set initial rotor position
-		 */
-		ret = rotor_position_read(&rotor_position_initial);
 
 /*
  * *************************************************************************************************
@@ -5079,8 +5065,7 @@ int main(void) {
 			if (ACCEL_CONTROL == 1) {
 				apply_acceleration(rotor_position_target, &target_velocity, 2);
 			} else {
-				ret = rotor_position_read(&rotor_position_initial);
-				BSP_MotorControl_GoTo(0, -rotor_position_initial + rotor_position_target);
+				BSP_MotorControl_GoTo(0, rotor_position_target/2);
 			}
 		}
 
