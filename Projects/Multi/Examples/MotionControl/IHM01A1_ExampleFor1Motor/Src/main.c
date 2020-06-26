@@ -578,13 +578,22 @@ void apply_acceleration(int32_t acc, int32_t* target_velocity, uint8_t dt_ms) {
 	uint32_t current_pwm_period_local = current_pwm_period;
 	uint32_t desired_pwm_period_local = desired_pwm_period;
 
-	if (acc > MAXIMUM_ACCELERATION) {
-		acc = MAXIMUM_ACCELERATION;
-	} else if (acc < -MAXIMUM_DECELERATION) {
-		acc = -MAXIMUM_DECELERATION;
+	motorDir_t old_dir = *target_velocity > 0 ? FORWARD : BACKWARD;
+
+	if (old_dir == FORWARD) {
+		if (acc > MAXIMUM_ACCELERATION) {
+			acc = MAXIMUM_ACCELERATION;
+		} else if (acc < -MAXIMUM_DECELERATION) {
+			acc = -MAXIMUM_DECELERATION;
+		}
+	} else {
+		if (acc < -MAXIMUM_ACCELERATION) {
+			acc = -MAXIMUM_ACCELERATION;
+		} else if (acc > MAXIMUM_DECELERATION) {
+			acc = MAXIMUM_DECELERATION;
+		}	
 	}
 
-	motorDir_t old_dir = *target_velocity > 0 ? FORWARD : BACKWARD;
 	*target_velocity += (acc << 12) / (1000 / dt_ms);
 	motorDir_t new_dir = *target_velocity > 0 ? FORWARD : BACKWARD;
 
