@@ -774,6 +774,7 @@ void L6474_GoTo(uint8_t deviceId, int32_t targetPosition)
   
   /* Compute the number of steps to perform */
   steps = targetPosition - devicePrm[deviceId].currentPosition;
+  steps *= 2; // account for PWM clock divider
   
   if (steps >= 0) 
   {
@@ -864,6 +865,8 @@ void L6474_Move(uint8_t deviceId, motorDir_t direction, uint32_t stepCount)
   
   if (stepCount != 0) 
   {
+    stepCount *= 2; // account for PWM clock divider
+
     devicePrm[deviceId].stepsToTake = stepCount;
     
     devicePrm[deviceId].commandExecuted = MOVE_CMD;

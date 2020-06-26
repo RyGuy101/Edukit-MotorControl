@@ -213,8 +213,9 @@ static void MX_USART2_UART_Init(void);
 
 #define ENABLE_HIGH_SPEED_SAMPLING_MODE 0
 
-#define STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE 	17.778	//	Stepper response in step value command to rotation in degrees
+//#define STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE 	17.778	//	Stepper response in step value command to rotation in degrees
 #define STEPPER_READ_POSITION_STEPS_PER_DEGREE 		8.889	//	Stepper position read value in steps per degree
+#define STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE 	STEPPER_READ_POSITION_STEPS_PER_DEGREE
 #define ENCODER_READ_ANGLE_SCALE 					6.6667 // Angle Scale 6.66667 for 600 Pulse Per Rev Resolution Optical Encoder
 
 #define ENCODER_ANGLE_POLARITY -1.0				// Note that physical system applies negative polarity to pendulum angle
@@ -287,7 +288,7 @@ static void MX_USART2_UART_Init(void);
 #define PRIMARY_WINDUP_LIMIT 100				// Integrator wind up limits for PID controllers
 #define SECONDARY_WINDUP_LIMIT 100				// Integrator wind up limits for PID controllers
 
-#define ENABLE_LIMITER 0
+#define ENABLE_LIMITER 1
 #define LIMITER_THRESHOLD 2
 #define LIMITER_SLOPE 8
 
@@ -569,6 +570,7 @@ volatile uint32_t current_pwm_period = 0;
 /*
  * Apply acceleration
  */
+#define ACCEL_CONTROL 1 // Set to 1 to enable acceleration control. Set to 0 to use position target control.
 #define PWM_COUNT_SAFETY_MARGIN 4
 #define MAXIMUM_ACCELERATION 20000
 #define MAXIMUM_DECELERATION 20000
@@ -900,10 +902,10 @@ int main(void) {
 	uint32_t readBytes;
 
 	int rotor_position_target = 0;
-//	int rotor_position_target_curr = 0;
+	int rotor_position_target_curr = 0;
 	int rotor_position_target_prev = 0;
 
-//	int rotor_position_delta;
+	int rotor_position_delta;
 	int cycle_count;
 	int i, j, k, m;
 	int ret;
@@ -3717,13 +3719,13 @@ int main(void) {
 		* counter clockwise rotation by Motor Position displacement prompt
 		*
 		*/
-		BSP_MotorControl_GoTo(0, 80);
+		BSP_MotorControl_GoTo(0, 40);
 		BSP_MotorControl_WaitWhileActive(0);
 		HAL_Delay(150);
-		BSP_MotorControl_GoTo(0, -80);
+		BSP_MotorControl_GoTo(0, -40);
 		BSP_MotorControl_WaitWhileActive(0);
 		HAL_Delay(150);
-		BSP_MotorControl_GoTo(0, 80);
+		BSP_MotorControl_GoTo(0, 40);
 		BSP_MotorControl_WaitWhileActive(0);
 		HAL_Delay(150);
 		BSP_MotorControl_GoTo(0, 0);
@@ -3799,8 +3801,28 @@ int main(void) {
 		*/
 
 		*current_error = 0;
+
+		// Temporary fix to account for change in unit conversions:
+		float p_gain = pid_filter->p_gain;
+		float i_gain = pid_filter->i_gain;
+		float d_gain = pid_filter->d_gain;
+		if (ACCEL_CONTROL == 0) {
+			pid_filter->p_gain /= STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+			pid_filter->i_gain /= STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+			pid_filter->d_gain /= STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		}
+
+
 		pid_filter_control_execute(pid_filter, current_error, sample_period,
 				deriv_lp_corner_f);
+
+		// Temporary fix to account for change in unit conversions:
+		if (ACCEL_CONTROL == 0) {
+			pid_filter->p_gain = p_gain;
+			pid_filter->i_gain = i_gain;
+			pid_filter->d_gain = d_gain;
+		}
+
 		*current_error_rotor = 0;
 		pid_filter_control_execute(rotor_pid, current_error_rotor,
 				sample_period_rotor, deriv_lp_corner_f_rotor);
@@ -3878,8 +3900,10 @@ int main(void) {
  *
  * *************************************************************************************************
  */
-		BSP_MotorControl_HardStop(0);
-		L6474_CmdEnable(0);
+		if (ACCEL_CONTROL == 1) {
+			BSP_MotorControl_HardStop(0);
+			L6474_CmdEnable(0);
+		}
 		int32_t target_velocity = 0;
 
 		while (enable_pid == 1) {
@@ -4523,7 +4547,7 @@ int main(void) {
 
 			if (ENABLE_ENCODER_ANGLE_SLOPE_CORRECTION == 1 ) {
 				if ((i < ENCODER_ANGLE_SLOPE_CORRECTION_CYCLE_LIMIT) || (ENCODER_ANGLE_SLOPE_CORRECTION_CYCLE_LIMIT == 0)) {
-					encoder_angle_slope_corr = rotor_position_diff_filter / ENCODER_ANGLE_SLOPE_CORRECTION_SCALE;
+					encoder_angle_slope_corr = (rotor_position_diff_filter / STEPPER_READ_POSITION_STEPS_PER_DEGREE) / ENCODER_ANGLE_SLOPE_CORRECTION_SCALE;
 				}
 			}
 
@@ -4553,9 +4577,26 @@ int main(void) {
 
 			*current_error = *current_error + pendulum_position_command;
 
+			// Temporary fix to account for change in unit conversions:
+			float p_gain = pid_filter->p_gain;
+			float i_gain = pid_filter->i_gain;
+			float d_gain = pid_filter->d_gain;
+			if (ACCEL_CONTROL == 0) {
+				pid_filter->p_gain /= STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+				pid_filter->i_gain /= STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+				pid_filter->d_gain /= STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+			}
+
 			pid_filter_control_execute(pid_filter, current_error, sample_period,
 					deriv_lp_corner_f);
-			rotor_position_target = pid_filter->control_output;
+			rotor_position_target = pid_filter->control_output*STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+
+			// Temporary fix to account for change in unit conversions:
+			if (ACCEL_CONTROL == 0) {
+				pid_filter->p_gain = p_gain;
+				pid_filter->i_gain = i_gain;
+				pid_filter->d_gain = d_gain;
+			}
 
 		   /*
 			* Acquire Motor Position and Compute Low Pass Filtered Motor Position
@@ -4666,8 +4707,7 @@ int main(void) {
 
 				if ((i % PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_INTERVAL) == 0) {
 					pendulum_position_command =
-							(float) (PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_AMPLITUDE
-									* ENCODER_READ_ANGLE_SCALE);
+							(float) PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_AMPLITUDE;  //TODO Units of pendulum_position_command were fixed (changed from encoder counts to degrees), but this will change behavior (it will be 6.667 times less than before)
 					impulse_start_index = 0;
 					chirp_cycle = 0;
 				}
@@ -4715,7 +4755,7 @@ int main(void) {
 
 				pid_filter_control_execute(rotor_pid, current_error_rotor,
 						sample_period_rotor, deriv_lp_corner_f_rotor);
-				rotor_position_target = pid_filter->control_output + rotor_pid->control_output;
+				rotor_position_target = pid_filter->control_output*STEPPER_READ_POSITION_STEPS_PER_DEGREE + rotor_pid->control_output;
 			}
 
 
@@ -4909,7 +4949,7 @@ int main(void) {
 
 			rotor_target_in = rotor_position_target;
 
-			if(ENABLE_LIMITER == 1){
+			if(ENABLE_LIMITER == 1 && ACCEL_CONTROL == 0){
 
 				if ((rotor_position_target - rotor_position_target_prev) >= LIMITER_THRESHOLD) {
 					rotor_position_target = rotor_position_target_prev
@@ -5015,38 +5055,42 @@ int main(void) {
 
 			HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 			}
-//			/*
-//			 * Limit maximum excursion in rotor angle at each cycle step
-//			 */
-//
-//			rotor_position_delta = ROTOR_POSITION_MAX_DIFF;
-//			rotor_position_target_curr = rotor_position_target;
-//			if ((rotor_position_target_curr - rotor_position_target_prev)
-//					< -rotor_position_delta) {
-//				rotor_position_target = rotor_position_target_prev
-//						- rotor_position_delta;
-//			} else if ((rotor_position_target_curr - rotor_position_target_prev)
-//					> rotor_position_delta) {
-//				rotor_position_target = rotor_position_target_prev
-//						+ rotor_position_delta;
-//			}
+			/*
+			 * Limit maximum excursion in rotor angle at each cycle step
+			 */
+
+			if (ACCEL_CONTROL == 0) {
+				rotor_position_delta = ROTOR_POSITION_MAX_DIFF;
+				rotor_position_target_curr = rotor_position_target;
+				if ((rotor_position_target_curr - rotor_position_target_prev)
+						< -rotor_position_delta) {
+					rotor_position_target = rotor_position_target_prev
+							- rotor_position_delta;
+				} else if ((rotor_position_target_curr - rotor_position_target_prev)
+						> rotor_position_delta) {
+					rotor_position_target = rotor_position_target_prev
+							+ rotor_position_delta;
+				}
+			}
 
 			rotor_position_target_prev = rotor_position_target;
 			rotor_position_command_prev = rotor_position_command;
 
-//			ret = rotor_position_read(&rotor_position_initial);
-//			BSP_MotorControl_GoTo(0, -rotor_position_initial + rotor_position_target);
-
-			apply_acceleration(rotor_position_target * STEPPER_READ_POSITION_STEPS_PER_DEGREE, &target_velocity, 2);
-
+			if (ACCEL_CONTROL == 1) {
+				apply_acceleration(rotor_position_target, &target_velocity, 2);
+			} else {
+				ret = rotor_position_read(&rotor_position_initial);
+				BSP_MotorControl_GoTo(0, -rotor_position_initial + rotor_position_target);
+			}
 		}
 
 	/*
 	 * Control System Exit Loop
 	 */
-
-		desired_pwm_period = 0;
-		current_pwm_period = 0;
+		if (ACCEL_CONTROL == 1) {
+			desired_pwm_period = 0;
+			current_pwm_period = 0;
+		}
 
 		/*
 		 * Restore rotor position at low speed profile
