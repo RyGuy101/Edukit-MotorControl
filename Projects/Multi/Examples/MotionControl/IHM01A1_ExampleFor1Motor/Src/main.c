@@ -499,7 +499,7 @@ static void MX_USART2_UART_Init(void);
  * command input impulse signal
  */
 #define ENABLE_PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE 0		// If selected, disable all other modulation inputs
-#define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_AMPLITUDE 3	// Amplitude of step cycle. Note: Peak-to-Peak amplitude is double this value
+#define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_AMPLITUDE 20	// Amplitude of step cycle. Note: Peak-to-Peak amplitude is double this value
 #define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_PERIOD 1		// Duration of impulse in cycles
 #define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_INTERVAL 14000	// Interval between impulse events in cycles
 /* Define for High Speed System */
