@@ -668,8 +668,8 @@ extern void L6474_Board_DisableIrq(void);
 extern void L6474_Board_GpioInit(uint8_t deviceId);
 ///Get the current value of the counter used by PWM1
 extern uint32_t L6474_Board_Pwm1GetCounter();
-///Calculate the PWM1 period for a given frequency
-extern uint32_t L6474_Board_Pwm1CalcPeriod(uint16_t freq);
+// Prescale a frequency in preparation for calculating counter period for PWM1
+extern int32_t L6474_Board_Pwm1PrescaleFreq(int32_t freq);
 ///Set PWM1 period
 extern void L6474_Board_Pwm1SetPeriod(uint32_t period);
 ///Set PWM1 frequency and start it

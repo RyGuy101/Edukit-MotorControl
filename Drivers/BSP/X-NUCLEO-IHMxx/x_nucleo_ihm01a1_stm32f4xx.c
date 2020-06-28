@@ -223,13 +223,12 @@ uint32_t L6474_Board_Pwm1GetCounter() {
 }
 
 /******************************************************//**
- * @brief  Calculates the period in counter increments for a given frequency
- * @retval period in counter increments
+ * @brief  Prescale a frequency in preparation for calculating counter period for PWM1 used by device 0
+ * @retval prescaled frequency
  **********************************************************/
-uint32_t L6474_Board_Pwm1CalcPeriod(uint16_t freq)
+int32_t L6474_Board_Pwm1PrescaleFreq(int32_t freq)
 {
-  uint32_t sysFreq = HAL_RCC_GetSysClockFreq();
-  return sysFreq/ (TIMER_PRESCALER * BSP_MOTOR_CONTROL_BOARD_PWM1_FREQ_RESCALER * (uint32_t)freq);
+  return (TIMER_PRESCALER * BSP_MOTOR_CONTROL_BOARD_PWM1_FREQ_RESCALER * freq);
 }
 
 
