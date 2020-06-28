@@ -295,8 +295,8 @@ static void MX_USART2_UART_Init(void);
 /*
  * High Speed Mode Values: 5, 25, 30
  */
-#define DERIVATIVE_LOW_PASS_CORNER_FREQUENCY 5  		// 5 - Corner frequency of low pass filter of Primary PID derivative
-#define LP_CORNER_FREQ_ROTOR 5 							// 5 - Corner frequency of low pass filter of Rotor Angle
+#define DERIVATIVE_LOW_PASS_CORNER_FREQUENCY 20  		// 5 - Corner frequency of low pass filter of Primary PID derivative
+#define LP_CORNER_FREQ_ROTOR 50 							// 5 - Corner frequency of low pass filter of Rotor Angle
 #define DERIVATIVE_LOW_PASS_CORNER_FREQUENCY_ROTOR 50 	// 50 Corner frequency of low pass filter of Secondary PID derivative
 
 #define LQR_INTEGRAL_ENABLE 0							// Enables LQR mode including integral of rotor position error
@@ -479,7 +479,7 @@ static void MX_USART2_UART_Init(void);
  */
 
 #define ENABLE_ROTOR_POSITION_STEP_RESPONSE_CYCLE 1			// If selected, disable all other modulation inputs
-#define ROTOR_POSITION_STEP_RESPONSE_CYCLE_AMPLITUDE 8		// Default 8. Amplitude of step cycle. Note: Peak-to-Peak amplitude is double this value
+#define ROTOR_POSITION_STEP_RESPONSE_CYCLE_AMPLITUDE 20		// Default 8. Amplitude of step cycle. Note: Peak-to-Peak amplitude is double this value
 #define ROTOR_POSITION_STEP_RESPONSE_CYCLE_INTERVAL 8000 	// Default 8000
 #define STEP_RESPONSE_AMP_LIMIT_ENABLE 1					// Enables limit of Step Response if rotor amplitude exceeds limit
 															// Useful for protecting operation if summing step and sine drive
@@ -575,8 +575,7 @@ volatile uint32_t current_pwm_period = 0;
 #define MAXIMUM_ACCELERATION 20000
 #define MAXIMUM_DECELERATION 20000
 #define MIN_POSSIBLE_SPEED 2 // Should be at least 2, as per L6474_MIN_PWM_FREQ in l6474.c
-#define MAXIMUM_SPEED 1000
-void apply_acceleration(int32_t acc, int32_t* target_velocity, uint8_t dt_ms) {
+#define MAXIMUM_SPEED 10000
 	uint32_t current_pwm_period_local = current_pwm_period;
 	uint32_t desired_pwm_period_local = desired_pwm_period;
 
