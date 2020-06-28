@@ -576,10 +576,11 @@ volatile uint32_t current_pwm_period = 0;
 #define MAXIMUM_DECELERATION 20000
 #define MIN_POSSIBLE_SPEED 2 // Should be at least 2, as per L6474_MIN_PWM_FREQ in l6474.c
 #define MAXIMUM_SPEED 10000
+void apply_acceleration(int32_t acc, int32_t* target_velocity_prescaled, uint16_t sample_freq_hz) {
 	uint32_t current_pwm_period_local = current_pwm_period;
 	uint32_t desired_pwm_period_local = desired_pwm_period;
 
-	motorDir_t old_dir = *target_velocity > 0 ? FORWARD : BACKWARD;
+	motorDir_t old_dir = *target_velocity_prescaled > 0 ? FORWARD : BACKWARD;
 
 	if (old_dir == FORWARD) {
 		if (acc > MAXIMUM_ACCELERATION) {
@@ -595,27 +596,27 @@ volatile uint32_t current_pwm_period = 0;
 		}	
 	}
 
-	*target_velocity += (acc << 12) / (1000 / dt_ms);
-	motorDir_t new_dir = *target_velocity > 0 ? FORWARD : BACKWARD;
+	*target_velocity_prescaled += L6474_Board_Pwm1PrescaleFreq(acc) / sample_freq_hz;
+	motorDir_t new_dir = *target_velocity_prescaled > 0 ? FORWARD : BACKWARD;
 
-	uint16_t speed;
+	uint32_t speed_prescaled;
 	if (new_dir == FORWARD) {
-		if (*target_velocity < (MIN_POSSIBLE_SPEED << 12)) {
-			*target_velocity = (MIN_POSSIBLE_SPEED << 12);
-		} else if (*target_velocity > (MAXIMUM_SPEED << 12)) {
-			*target_velocity = (MAXIMUM_SPEED << 12);
+		if (*target_velocity_prescaled < L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED)) {
+			*target_velocity_prescaled = L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED);
+		} else if (*target_velocity_prescaled > L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED)) {
+			*target_velocity_prescaled = L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED);
 		}
-		speed = (uint16_t) (*target_velocity >> 12);
+		speed_prescaled = *target_velocity_prescaled;
 	} else {
-		if (*target_velocity > -(MIN_POSSIBLE_SPEED << 12)) {
-			*target_velocity = -(MIN_POSSIBLE_SPEED << 12);
-		} else if (*target_velocity < -(MAXIMUM_SPEED << 12)) {
-			*target_velocity = -(MAXIMUM_SPEED << 12);
+		if (*target_velocity_prescaled > -L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED)) {
+			*target_velocity_prescaled = -L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED);
+		} else if (*target_velocity_prescaled < -L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED)) {
+			*target_velocity_prescaled = -L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED);
 		}
-		speed = (uint16_t) (*target_velocity*(-1) >> 12);
+		speed_prescaled = *target_velocity_prescaled * -1;
 	}
 	uint32_t effective_pwm_period = desired_pwm_period_local;
-	desired_pwm_period_local = L6474_Board_Pwm1CalcPeriod(speed);
+	desired_pwm_period_local = HAL_RCC_GetSysClockFreq() / speed_prescaled;
 
 	if (old_dir != new_dir) {
 		L6474_Board_SetDirectionGpio(0, new_dir);
@@ -3889,7 +3890,7 @@ int main(void) {
 			BSP_MotorControl_HardStop(0);
 			L6474_CmdEnable(0);
 		}
-		int32_t target_velocity = 0;
+		int32_t target_velocity_prescaled = 0;
 
 		while (enable_pid == 1) {
 
@@ -5062,7 +5063,7 @@ int main(void) {
 			rotor_position_command_prev = rotor_position_command;
 
 			if (ACCEL_CONTROL == 1) {
-				apply_acceleration(rotor_position_target, &target_velocity, 2);
+				apply_acceleration(rotor_position_target, &target_velocity_prescaled, SAMPLE_FREQUENCY);
 			} else {
 				BSP_MotorControl_GoTo(0, rotor_position_target/2);
 			}
