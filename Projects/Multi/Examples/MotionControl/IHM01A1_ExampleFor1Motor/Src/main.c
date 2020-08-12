@@ -1651,6 +1651,9 @@ int main(void) {
 	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 	sprintf(msg, "Enter 'c' at prompt for Motor Control Characterization Mode\n\r");
 	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+	sprintf(msg, "Enter 'p' at prompt for Pendulum System Identification Mode\n\r");
+	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+
 //	sprintf(msg, "Enter 'z' at prompt for High Speed Mode: Test of Rotor Actuator and Pendulum Angle Encoder\n\r");
 //	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 //	sprintf(msg, "Enter 'l' at prompt for Load Disturbance Sensitivity Function Mode\n\r");
@@ -3003,28 +3006,69 @@ int main(void) {
 			sprintf(msg, "\r\n\r\n********  Starting Pendulum System Identification Test in 5 Seconds ********\r\n");
 			HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 
+			// acceleration init
+			int32_t target_velocity_prescaled = 0;
+			BSP_MotorControl_HardStop(0);
+			L6474_CmdEnable(0);
 
-			tick_cycle_start = HAL_GetTick();
-			k = 0;
-			while (k < 10){
-				ret = rotor_position_read(&rotor_position);
-				BSP_MotorControl_GoTo(0,rotor_position + (int)(16*(STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE)));
-				HAL_Delay(5000);
-				ret = rotor_position_read(&rotor_position);
-				BSP_MotorControl_GoTo(0,(int)(rotor_position - 16*(STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE)));
-				i = 0;
-				while (i < 5000){
-					test_time = HAL_GetTick() - tick_cycle_start;
-					ret = encoder_position_read(&encoder_position, &htim3);
-					sprintf(msg, "\n\r%i\t%i\t%0.1f\t%0.1f", i, (int)((HAL_GetTick() - tick_cycle_start)),
-							(float)(encoder_position/ENCODER_READ_ANGLE_SCALE),
-							(float)(rotor_position/STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE));
+			HAL_Delay(5000);
+
+			sprintf(msg, "DATA_BEGIN");
+			HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+
+			const int32_t acc_mag = 5000;
+			const int32_t profile_duration = 500;
+			const int32_t wiggle_count = 4;
+			const uint8_t Ts_ms = 4;
+			int32_t acc;
+			uint32_t prev_time = HAL_GetTick();
+			for (k = 0; k < profile_duration*wiggle_count*4; k++) {
+				acc = acc_mag * ((k/(wiggle_count*4))%4 == 1 || (k/(wiggle_count*4))%4 == 2 ? -1 : 1);
+				apply_acceleration(acc, &target_velocity_prescaled, 1000/Ts_ms);
+				ret = encoder_position_read(&encoder_position, &htim3);
+				sprintf(msg, "\r\n%i\t%0.1f\t%0.1f", k,
+						(float)(acc/STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE),
+						(float)(encoder_position/ENCODER_READ_ANGLE_SCALE));
+				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg),HAL_MAX_DELAY);
+
+				uint32_t dt = HAL_GetTick() - prev_time;
+				if (dt < Ts_ms) {
+					HAL_Delay(Ts_ms - dt);
+				} else {//TODO
+					sprintf(msg, "Debug!\n");
 					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg),HAL_MAX_DELAY);
-					HAL_Delay(2);
-					i = i + 1;
 				}
-				k = k + 1;
+				prev_time += Ts_ms;
 			}
+
+			sprintf(msg, "\r\nDATA_END\r\n");
+			HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+
+			// acceleration deinit
+			desired_pwm_period = 0;
+			current_pwm_period = 0;
+
+//			tick_cycle_start = HAL_GetTick();
+//			k = 0;
+//			while (k < 10){
+//				ret = rotor_position_read(&rotor_position);
+//				BSP_MotorControl_GoTo(0,rotor_position + (int)(16*(STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE)));
+//				HAL_Delay(5000);
+//				ret = rotor_position_read(&rotor_position);
+//				BSP_MotorControl_GoTo(0,(int)(rotor_position - 16*(STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE)));
+//				i = 0;
+//				while (i < 5000){
+//					test_time = HAL_GetTick() - tick_cycle_start;
+//					ret = encoder_position_read(&encoder_position, &htim3);
+//					sprintf(msg, "\n\r%i\t%i\t%0.1f\t%0.1f", i, (int)((HAL_GetTick() - tick_cycle_start)),
+//							(float)(encoder_position/ENCODER_READ_ANGLE_SCALE),
+//							(float)(rotor_position/STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE));
+//					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg),HAL_MAX_DELAY);
+//					HAL_Delay(2);
+//					i = i + 1;
+//				}
+//				k = k + 1;
+//			}
 			L6474_CmdDisable(0);
 			while (1) {
 				sprintf(msg,
