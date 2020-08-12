@@ -55,6 +55,7 @@
 #include "x_nucleo_ihm01a1_stm32f3xx.h"
 #endif
 /* Exported types ------------------------------------------------------------*/
+
 /* Exported constants --------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
 void SystemClock_Config(void);

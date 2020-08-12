@@ -49,6 +49,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* Private function prototypes -----------------------------------------------*/
+extern int Delay_Pulse();
 extern void Main_StepClockHandler();
 extern void BSP_MotorControl_StepClockHandler(uint8_t deviceId); 
 extern void BSP_MotorControl_FlagInterruptHandler(void);
@@ -185,7 +186,11 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
 {
   if ((htim->Instance == BSP_MOTOR_CONTROL_BOARD_TIMER_PWM1)&& (htim->Channel == BSP_MOTOR_CONTROL_BOARD_HAL_ACT_CHAN_TIMER_PWM1))
   {
-	HAL_GPIO_TogglePin(BSP_MOTOR_CONTROL_BOARD_PWM_1_PORT, BSP_MOTOR_CONTROL_BOARD_PWM_1_PIN);
+	int delay_pulse = Delay_Pulse();
+	if (delay_pulse == 0){
+		HAL_GPIO_TogglePin(BSP_MOTOR_CONTROL_BOARD_PWM_1_PORT, BSP_MOTOR_CONTROL_BOARD_PWM_1_PIN);
+		HAL_GPIO_TogglePin(BSP_MOTOR_CONTROL_BOARD_PWM_1_PORT, BSP_MOTOR_CONTROL_BOARD_PWM_1_PIN);
+	}
     if (BSP_MotorControl_GetDeviceState(0) != INACTIVE)
     {
     	BSP_MotorControl_StepClockHandler(0);

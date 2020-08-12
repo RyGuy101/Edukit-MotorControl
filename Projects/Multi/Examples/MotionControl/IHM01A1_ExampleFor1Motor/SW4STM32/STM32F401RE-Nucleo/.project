@@ -143,6 +143,11 @@
 			<locationURI>PARENT-2-PROJECT_LOC/Src/clock_f4.c</locationURI>
 		</link>
 		<link>
+			<name>Example/User/edukit_system.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Src/edukit_system.c</locationURI>
+		</link>
+		<link>
 			<name>Example/User/main.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Src/main.c</locationURI>
