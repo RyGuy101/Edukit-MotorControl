@@ -188,8 +188,8 @@
 /*
  * High Speed Mode Values: 5, 25, 30
  */
-#define DERIVATIVE_LOW_PASS_CORNER_FREQUENCY 10  		// 5 - Corner frequency of low pass filter of Primary PID derivative
-#define LP_CORNER_FREQ_ROTOR 20 							// 5 - Corner frequency of low pass filter of Rotor Angle
+#define DERIVATIVE_LOW_PASS_CORNER_FREQUENCY 10  		// 10 - Corner frequency of low pass filter of Primary PID derivative
+#define LP_CORNER_FREQ_ROTOR 20 						// 20 - Corner frequency of low pass filter of Rotor Angle
 #define DERIVATIVE_LOW_PASS_CORNER_FREQUENCY_ROTOR 50 	// 50 Corner frequency of low pass filter of Secondary PID derivative
 
 #define LQR_INTEGRAL_ENABLE 0							// Enables LQR mode including integral of rotor position error
@@ -388,7 +388,7 @@
 #define ENABLE_ROTOR_POSITION_IMPULSE_RESPONSE_CYCLE 0			// If selected, disable all other modulation inputs
 #define ROTOR_POSITION_IMPULSE_RESPONSE_CYCLE_AMPLITUDE 8		// Amplitude of impulse in degrees
 #define ROTOR_POSITION_IMPULSE_RESPONSE_CYCLE_PERIOD 500 		// Duration of impulse in cycles
-#define ROTOR_POSITION_IMPULSE_RESPONSE_CYCLE_INTERVAL 5000	// Interval between impulse events in cycles
+#define ROTOR_POSITION_IMPULSE_RESPONSE_CYCLE_INTERVAL 5000	    // Interval between impulse events in cycles
 /* Define for High Speed System */
 #define ROTOR_IMPULSE_SAMPLE_RATE 500							// Default sample rate
 /*
@@ -396,9 +396,9 @@
  * command input impulse signal
  */
 #define ENABLE_PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE 0		// If selected, disable all other modulation inputs
-#define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_AMPLITUDE 20	// Amplitude of step cycle. Note: Peak-to-Peak amplitude is double this value
-#define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_PERIOD 1		// Duration of impulse in cycles
-#define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_INTERVAL 14000	// Interval between impulse events in cycles
+#define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_AMPLITUDE 100	// Amplitude of step cycle. Note: Peak-to-Peak amplitude is double this value
+#define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_PERIOD 4		// Duration of impulse in cycles
+#define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_INTERVAL 2500	// Interval between impulse events in cycles
 /* Define for High Speed System */
 #define PENDULUM_IMPULSE_SAMPLE_RATE 500 						// Default sample rate
 
