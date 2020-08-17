@@ -1312,6 +1312,7 @@ void user_configuration(void){
 				sprintf(msg, "%i", select_suspended_mode);
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 
+				enable_pendulum_position_impulse_response_cycle = 0;
 				enable_rotor_position_step_response_cycle = 0;
 				enable_mod_sin_rotor_tracking = 0;
 				enable_rotor_chirp = 0;
@@ -1347,6 +1348,20 @@ void user_configuration(void){
 					if (enable_rotor_tracking_comb_signal == 1){
 						rotor_track_comb_amplitude = ROTOR_TRACK_COMB_SIGNAL_AMPLITUDE * STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE;
 					}
+				}
+
+				if (enable_rotor_chirp == 0 && enable_rotor_position_step_response_cycle == 0
+						&& enable_mod_sin_rotor_tracking == 0 && enable_rotor_tracking_comb_signal == 0){
+					sprintf(msg, "\n\rEnter 1 to Enable Pendulum Impulse Signal; 0 to Disable: ");
+					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+					read_int(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &enable_pendulum_position_impulse_response_cycle);
+					sprintf(msg, "%i", enable_pendulum_position_impulse_response_cycle);
+					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+				}
+
+				if (enable_pendulum_position_impulse_response_cycle == 1) {
+					sprintf(msg, "\n\rPendulum Impulse Signal enabled ");
+					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 				}
 
 				if (enable_rotor_position_step_response_cycle == 1) {
