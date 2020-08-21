@@ -1008,6 +1008,9 @@ int main(void) {
 			if (select_suspended_mode == 0) {
 				encoder_position = encoder_position - encoder_position_down - (int) ((round)(180 * angle_scale));
 			}
+			if (select_suspended_mode == 1) {
+				encoder_position = encoder_position - encoder_position_down;
+			}
 
 			/*  Detect pendulum position excursion exceeding limits and exit */
 
