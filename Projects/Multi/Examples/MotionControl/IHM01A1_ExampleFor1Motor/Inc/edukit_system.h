@@ -396,7 +396,7 @@
  * command input impulse signal
  */
 #define ENABLE_PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE 0		// If selected, disable all other modulation inputs
-#define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_AMPLITUDE 100	// Amplitude of step cycle. Note: Peak-to-Peak amplitude is double this value
+#define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_AMPLITUDE 500	// Amplitude of step cycle. Note: Peak-to-Peak amplitude is double this value
 #define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_PERIOD 4		// Duration of impulse in cycles
 #define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_INTERVAL 2500	// Interval between impulse events in cycles
 /* Define for High Speed System */
