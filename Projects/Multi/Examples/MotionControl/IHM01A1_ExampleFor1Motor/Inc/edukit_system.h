@@ -326,13 +326,13 @@
 
 #define ENABLE_ROTOR_CHIRP 0				// If selected, disable all other modulation inputs
 #define ROTOR_CHIRP_START_FREQ 0.001		// 0.001 default
-#define ROTOR_CHIRP_END_FREQ 5				// 5 default
-#define ROTOR_CHIRP_PERIOD 20000			// 40000 default
-#define ROTOR_CHIRP_SWEEP_DELAY 5000			// 10000 default - enables control system to recover between sweeps
+#define ROTOR_CHIRP_END_FREQ 20				// 5 default
+#define ROTOR_CHIRP_PERIOD 20000			// 20000 default
+#define ROTOR_CHIRP_SWEEP_DELAY 5000		// 5000 default - enables control system to recover between sweeps
 /* Define for High Speed System */
 #define ROTOR_CHIRP_SAMPLE_RATE 500.0		// 500.0 default for Low Speed
 #define ROTOR_CHIRP_START_CYCLES 0			// 0 default
-#define ROTOR_CHIRP_STEP_AMPLITUDE 0.25  		// 0.3 default
+#define ROTOR_CHIRP_STEP_AMPLITUDE 1  	// 0.3 default
 
 #define ENABLE_ROTOR_TRACK_COMB_SIGNAL 0				// If selected, disable all other modulation inputs
 #define ROTOR_TRACK_COMB_SIGNAL_PERIOD 50000			// 50000 default
@@ -377,7 +377,7 @@
 
 #define ENABLE_ROTOR_POSITION_STEP_RESPONSE_CYCLE 1			// If selected, disable all other modulation inputs
 #define ROTOR_POSITION_STEP_RESPONSE_CYCLE_AMPLITUDE 20		// Default 8. Amplitude of step cycle. Note: Peak-to-Peak amplitude is double this value
-#define ROTOR_POSITION_STEP_RESPONSE_CYCLE_INTERVAL 10000 	// Default 8000
+#define ROTOR_POSITION_STEP_RESPONSE_CYCLE_INTERVAL 10240 	// Default 10240
 #define STEP_RESPONSE_AMP_LIMIT_ENABLE 1					// Enables limit of Step Response if rotor amplitude exceeds limit
 															// Useful for protecting operation if summing step and sine drive
 #define STEP_RESPONSE_AMP_LIMIT 350							// Angle limit for Step Response action
@@ -398,7 +398,7 @@
 #define ENABLE_PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE 0		// If selected, disable all other modulation inputs
 #define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_AMPLITUDE 500	// Amplitude of step cycle. Note: Peak-to-Peak amplitude is double this value
 #define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_PERIOD 4		// Duration of impulse in cycles
-#define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_INTERVAL 2500	// Interval between impulse events in cycles
+#define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_INTERVAL 5000	// Interval between impulse events in cycles
 /* Define for High Speed System */
 #define PENDULUM_IMPULSE_SAMPLE_RATE 500 						// Default sample rate
 
