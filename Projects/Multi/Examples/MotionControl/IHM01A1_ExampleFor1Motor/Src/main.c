@@ -1265,9 +1265,9 @@ int main(void) {
 
 				if ((i % PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_INTERVAL) == 0) {
 					pendulum_position_command =
-							(float) PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_AMPLITUDE;  //TODO Units of pendulum_position_command were fixed (changed from encoder counts to degrees), but this will change behavior (it will be 6.667 times less than before)
-					impulse_start_index = 0;
+							(float) PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_AMPLITUDE;
 					chirp_cycle = 0;
+					impulse_start_index = 0;
 				}
 				if (impulse_start_index
 						> PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_PERIOD) {
@@ -1327,7 +1327,8 @@ int main(void) {
 
 				/* Load Disturbance Sensitivity Function signal introduction */
 				if (enable_disturbance_rejection_step == 1){
-					rotor_position_target = rotor_position_target - rotor_position_command;
+					/* Scale amplitude of rotor position command to equal that of rotor_position_target */
+					rotor_position_target = rotor_position_target - rotor_position_command * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
 				}
 			}
 
@@ -1376,22 +1377,22 @@ int main(void) {
 
 			/* High speed sampling mode data reporting */
 			if (enable_high_speed_sampling == 1 && enable_rotor_chirp == 1 && enable_rotor_tracking_comb_signal == 0 && ACCEL_CONTROL_DATA == 0){
-				sprintf(msg, "%i\t%i\t%i\t%i\r\n", cycle_period_sum,
-						rotor_position, chirp_cycle, (int)(100*rotor_position_command));
+				sprintf(msg, "%i\t%i\t%i\t%i\t%i\t%i\r\n", cycle_period_sum, (int)(chirp_cycle == 0),
+						encoder_position, display_parameter, rotor_target_in, (int)(100*rotor_position_command));
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 			}
 
 			/* High speed sampling mode data reporting without rotor chirp signal and with comb signal */
 			if (enable_high_speed_sampling == 1 && enable_rotor_chirp == 0 && enable_rotor_tracking_comb_signal == 1 && ACCEL_CONTROL_DATA == 0){
-				sprintf(msg, "%i\t%i\t%i\t%i\r\n", cycle_period_sum,
-						rotor_position, rotor_target_in,(int)(100*rotor_position_command));
+				sprintf(msg, "%i\t%i\t%i\t%i\t%i\r\n", cycle_period_sum,
+						encoder_position, display_parameter, rotor_target_in,(int)(100*rotor_position_command));
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 			}
 
 			/* High speed sampling mode data reporting without rotor chirp signal and without comb signal */
 			if (enable_high_speed_sampling == 1 && enable_rotor_chirp == 0 && enable_rotor_tracking_comb_signal == 0 && ACCEL_CONTROL_DATA == 0){
-				sprintf(msg, "%i\t%i\t%i\t%i\r\n", cycle_period_sum,
-						rotor_position, rotor_target_in,(int)(rotor_position_command));
+				sprintf(msg, "%i\t%i\t%i\t%i\t%i\r\n", cycle_period_sum,
+						encoder_position,display_parameter, rotor_target_in,(int)(rotor_position_command));
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 			}
 			/* High speed sampling mode data reporting for 800 Hz mode */
@@ -1417,7 +1418,7 @@ int main(void) {
 			}
 			/* Select display parameter corresponding to requested selection of Sensitivity Functions */
 			if (enable_disturbance_rejection_step == 1) { display_parameter = rotor_position; }
-			else if (enable_noise_rejection_step == 1) { noise_rej_signal = rotor_position_target/10; }
+			else if (enable_noise_rejection_step == 1) { noise_rej_signal = rotor_position_target/STEPPER_READ_POSITION_STEPS_PER_DEGREE; }
 			else if (enable_sensitivity_fnc_step == 1)  { display_parameter = rotor_position_command - rotor_position; }
 			else { display_parameter = rotor_position; }
 

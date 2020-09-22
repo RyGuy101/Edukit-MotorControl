@@ -532,7 +532,6 @@ int mode_index_identification(char * user_config_input, int config_command_contr
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_disable_noise_rej_step ) == 0 ){
 		enable_noise_rejection_step = 0;
-		enable_rotor_position_step_response_cycle = 1;
 		enable_disturbance_rejection_step = 0;
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_enable_sensitivity_fnc_step ) == 0 ){
