@@ -519,11 +519,22 @@ int mode_index_identification(char * user_config_input, int config_command_contr
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_enable_step ) == 0 ){
 		enable_rotor_position_step_response_cycle = 1;
+		enable_sensitivity_fnc_step = 0;
 		enable_noise_rejection_step = 0;
 		enable_disturbance_rejection_step = 0;
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_disable_step ) == 0 ){
 		enable_rotor_position_step_response_cycle = 0;
+		config_command = 1;
+	} else if (strcmp(user_config_input, mode_string_enable_pendulum_impulse) == 0 ){
+		enable_pendulum_position_impulse_response_cycle = 1;
+		enable_rotor_position_step_response_cycle = 0;
+		enable_sensitivity_fnc_step = 0;
+		enable_noise_rejection_step = 0;
+		enable_disturbance_rejection_step = 0;
+		config_command = 1;
+	} else if (strcmp(user_config_input, mode_string_disable_pendulum_impulse ) == 0 ){
+		enable_pendulum_position_impulse_response_cycle = 0;
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_enable_noise_rej_step ) == 0 ){
 		enable_noise_rejection_step = 1;
@@ -653,6 +664,8 @@ void set_mode_strings(void){
 	sprintf(mode_string_inc_max_d, "O");
 	sprintf(mode_string_enable_step, "P");
 	sprintf(mode_string_disable_step, "p");
+	sprintf(mode_string_enable_pendulum_impulse, "H");
+	sprintf(mode_string_disable_pendulum_impulse, "h");
 	sprintf(mode_string_enable_load_dist, "L");
 	sprintf(mode_string_disable_load_dist, "l");
 	sprintf(mode_string_enable_noise_rej_step, "R");
@@ -694,13 +707,13 @@ void set_mode_strings(void){
 void user_prompt(void){
 	sprintf(msg, "********  System Start Mode Selections  ********\n\r");
 	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-	sprintf(msg, "Enter 1 at prompt for Inverted Pendulum Control with Motor Speed Profile - Medium\n\r");
+	sprintf(msg, "Enter 1 at prompt for Inverted Pendulum Control\n\r");
 	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-	sprintf(msg, "Enter 2 at prompt for Inverted Pendulum Control with Motor Speed Profile - High\n\r");
-	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-	sprintf(msg, "Enter 3 at prompt for Inverted Pendulum Control with Motor Speed Profile - Low\n\r");
-	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-	sprintf(msg, "Enter 4 at prompt for Suspended Pendulum Control with Motor Speed Profile - Medium\n\r");
+	//sprintf(msg, "Enter 2 at prompt for Inverted Pendulum Control with Motor Speed Profile - High\n\r");
+	//HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+	//sprintf(msg, "Enter 3 at prompt for Inverted Pendulum Control with Motor Speed Profile - Low\n\r");
+	//HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+	sprintf(msg, "Enter 4 at prompt for Suspended Pendulum Control\n\r");
 	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 	sprintf(msg, "Enter 's' at prompt for Single PID: With Prompts for Pendulum Controller Gains\n\r");
 	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
@@ -782,21 +795,21 @@ void get_user_mode_index(char * user_string, int * char_mode_select, int * mode_
 		*mode_index = mode_1;
 		break;
 
-	case 2:
-		*mode_index = mode_2;
-		break;
+	//case 2:
+	//	*mode_index = mode_2;
+	//	break;
 
-	case 3:
-		*mode_index = mode_3;
-		break;
+	//case 3:
+	//	*mode_index = mode_3;
+	//	break;
 
 	case 4:
 		*mode_index = mode_4;
 		break;
 
-	case 7:
-		*mode_index = mode_adaptive;
-		break;
+	//case 7:
+	//	*mode_index = mode_adaptive;
+	//	break;
 
 	case 8:
 		*mode_index = mode_8;
@@ -1213,23 +1226,23 @@ void user_configuration(void){
 				break;
 
 
-			/* Adaptive Mode selection */
+			/* Adaptive Mode selection - currently disabled */
 			case 7:
-				enable_adaptive_mode = 1;
-				select_suspended_mode = 0;
-				proportional = 		PRIMARY_PROPORTIONAL_MODE_2;
-				integral = 			PRIMARY_INTEGRAL_MODE_2;
-				derivative = 		PRIMARY_DERIVATIVE_MODE_2;
-				rotor_p_gain = 		SECONDARY_PROPORTIONAL_MODE_2;
-				rotor_i_gain = 		SECONDARY_INTEGRAL_MODE_2;
-				rotor_d_gain = 		SECONDARY_DERIVATIVE_MODE_2;
-				max_speed = 		MAX_SPEED_MODE_2;
-				min_speed = 		MIN_SPEED_MODE_2;
-				enable_mod_sin_rotor_tracking = ENABLE_MOD_SIN_ROTOR_TRACKING;
-				enable_rotor_position_step_response_cycle = ENABLE_ROTOR_POSITION_STEP_RESPONSE_CYCLE;
-				sprintf(msg, "\n\rMode %i Configured", mode_index);
-				HAL_UART_Transmit(&huart2, (uint8_t*) msg,
-						strlen(msg), HAL_MAX_DELAY);
+				//enable_adaptive_mode = 1;
+				//select_suspended_mode = 0;
+				//proportional = 		PRIMARY_PROPORTIONAL_MODE_2;
+				//integral = 			PRIMARY_INTEGRAL_MODE_2;
+				//derivative = 		PRIMARY_DERIVATIVE_MODE_2;
+				//rotor_p_gain = 		SECONDARY_PROPORTIONAL_MODE_2;
+				//rotor_i_gain = 		SECONDARY_INTEGRAL_MODE_2;
+				//rotor_d_gain = 		SECONDARY_DERIVATIVE_MODE_2;
+				//max_speed = 		MAX_SPEED_MODE_2;
+				//min_speed = 		MIN_SPEED_MODE_2;
+				//enable_mod_sin_rotor_tracking = ENABLE_MOD_SIN_ROTOR_TRACKING;
+				//enable_rotor_position_step_response_cycle = ENABLE_ROTOR_POSITION_STEP_RESPONSE_CYCLE;
+				//sprintf(msg, "\n\rMode %i Configured", mode_index);
+				//HAL_UART_Transmit(&huart2, (uint8_t*) msg,
+				//		strlen(msg), HAL_MAX_DELAY);
 				break;
 
 			/* General mode selection requiring user specification of all configurations */
