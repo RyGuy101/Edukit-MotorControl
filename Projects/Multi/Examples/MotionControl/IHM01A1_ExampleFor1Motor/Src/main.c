@@ -545,6 +545,12 @@ int main(void) {
 	iir_0 = 1 / (1 + IWon);
 	iir_1 = iir_0;
 	iir_2 = iir_0 * (1 - IWon);
+	fo_nr = LP_NOISE_REJECTION_FILTER;
+	Wo_nr = 2 * 3.141592654 * fo_nr;
+	IWon_nr = 2 / (Wo_nr * Tsample);
+	iir_0_nr = 1 / (1 + IWon_nr);
+	iir_1_nr = iir_0_nr;
+	iir_2_nr = iir_0_nr * (1 - IWon_nr);
 	fo_LT = LP_CORNER_FREQ_LONG_TERM;
 	Wo_LT = 2 * 3.141592654 * fo_LT;
 	IWon_LT = 2 / (Wo_LT * Tsample);
@@ -1111,7 +1117,6 @@ int main(void) {
 
 			/*
 			 * Compute error between Pendulum Angle and Pendulum Tracking Angle in units of steps
-			 *
 			 * Apply scale factor to match angle to step gain of rotor actuator
 			 *
 			 */
@@ -1125,6 +1130,8 @@ int main(void) {
 			 *
 			 * Include addition of Pendulum Angle track signal impulse signal
 			 * Compute control signal, rotor position target in step units
+			 *
+			 * Pendulum tracking command, pendulum_position_command, also supplied in step units
 			 *
 			 */
 
@@ -1224,6 +1231,7 @@ int main(void) {
 							(float) (mod_sin_amplitude
 									* (1 + sin(-1.5707 + ((i - MOD_SIN_START_CYCLES)/MOD_SIN_SAMPLE_RATE) * (MOD_SIN_MODULATION_FREQ * 6.2832))));
 					rotor_sine_drive_mod = sin(0 + ((i - MOD_SIN_START_CYCLES) /MOD_SIN_SAMPLE_RATE) * (mod_sin_carrier_frequency * 6.2832));
+					rotor_sine_drive = rotor_sine_drive + MOD_SIN_MODULATION_MIN;
 					rotor_sine_drive = rotor_sine_drive * rotor_sine_drive_mod * rotor_mod_control;
 				}
 
@@ -1260,7 +1268,10 @@ int main(void) {
 				impulse_start_index++;
 			}
 
-			/*  Create pendulum angle track impulse signal */
+			/*
+			 * Create pendulum angle track impulse signal.  Polarity of impulse alternates
+			 */
+
 			if (enable_pendulum_position_impulse_response_cycle == 1 && i != 0) {
 
 				if ((i % PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_INTERVAL) == 0) {
@@ -1320,9 +1331,22 @@ int main(void) {
 					*current_error_rotor = rotor_position_filter - rotor_position_command;
 				}
 
+				/*
+				 * PID input supplied in units of stepper motor steps with tracking error determined
+				 * as difference between rotor position tracking command and rotor position in units
+				 * of stepper motor steps.
+				 */
+
+
 				pid_filter_control_execute(rotor_pid, current_error_rotor,
 						sample_period_rotor, deriv_lp_corner_f_rotor);
 				rotor_position_target = pid_filter->control_output + rotor_pid->control_output;
+
+				/*
+				 * Scaling of rotor_position_target satisfies requirement for operation of integrator
+				 * mode actuator
+				 */
+
 				rotor_position_target = rotor_position_target*STEPPER_READ_POSITION_STEPS_PER_DEGREE;
 
 				/* Load Disturbance Sensitivity Function signal introduction */
@@ -1375,6 +1399,7 @@ int main(void) {
 				slope_prev = slope;
 			}
 
+
 			/* High speed sampling mode data reporting */
 			if (enable_high_speed_sampling == 1 && enable_rotor_chirp == 1 && enable_rotor_tracking_comb_signal == 0 && ACCEL_CONTROL_DATA == 0){
 				sprintf(msg, "%i\t%i\t%i\t%i\t%i\t%i\r\n", cycle_period_sum, (int)(chirp_cycle == 0),
@@ -1391,8 +1416,13 @@ int main(void) {
 
 			/* High speed sampling mode data reporting without rotor chirp signal and without comb signal */
 			if (enable_high_speed_sampling == 1 && enable_rotor_chirp == 0 && enable_rotor_tracking_comb_signal == 0 && ACCEL_CONTROL_DATA == 0){
+				if (enable_pendulum_position_impulse_response_cycle == 1) {
+					reference_tracking_command = pendulum_position_command;
+				} else {
+					reference_tracking_command = rotor_position_command;
+				}
 				sprintf(msg, "%i\t%i\t%i\t%i\t%i\r\n", cycle_period_sum,
-						encoder_position,display_parameter, rotor_target_in,(int)(rotor_position_command));
+						encoder_position,display_parameter, rotor_target_in,(int)(reference_tracking_command));
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 			}
 			/* High speed sampling mode data reporting for 800 Hz mode */
@@ -1418,14 +1448,23 @@ int main(void) {
 			}
 			/* Select display parameter corresponding to requested selection of Sensitivity Functions */
 			if (enable_disturbance_rejection_step == 1) { display_parameter = rotor_position; }
-			else if (enable_noise_rejection_step == 1) { noise_rej_signal = rotor_position_target/STEPPER_READ_POSITION_STEPS_PER_DEGREE; }
+			else if (enable_noise_rejection_step == 1) { noise_rej_signal = rotor_position_target; }
 			else if (enable_sensitivity_fnc_step == 1)  { display_parameter = rotor_position_command - rotor_position; }
 			else { display_parameter = rotor_position; }
 
-			if (enable_noise_rejection_step == 1){
-				//noise_rej_signal_filter =  noise_rej_signal*iir_0 + noise_rej_signal_prev*iir_1 - noise_rej_signal_filter_prev*iir_2;
-				//noise_rej_signal_filter_prev = noise_rej_signal_filter;
-				//noise_rej_signal_prev = noise_rej_signal;
+			if (enable_noise_rejection_step == 1 && enable_high_speed_sampling == 0){
+				/*
+				 * Apply antialiasing filter for noise rejection signal when reduced reporting rate applies
+				 * When high speed sampling is disabled, reporting rate is 50 Hz.  Noise rejection signal filter
+				 * corner frequency is 25 Hz.
+				 */
+				noise_rej_signal_filter =  noise_rej_signal*iir_0_nr + noise_rej_signal_prev*iir_1_nr - noise_rej_signal_filter_prev*iir_2_nr;
+				noise_rej_signal_filter_prev = noise_rej_signal_filter;
+				noise_rej_signal_prev = noise_rej_signal;
+				display_parameter = noise_rej_signal_filter;
+			}
+
+			if (enable_noise_rejection_step == 1 && enable_high_speed_sampling == 1){
 				display_parameter = noise_rej_signal;
 			}
 
