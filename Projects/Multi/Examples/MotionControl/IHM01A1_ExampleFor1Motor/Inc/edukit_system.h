@@ -190,7 +190,9 @@
  */
 #define DERIVATIVE_LOW_PASS_CORNER_FREQUENCY 10  		// 10 - Corner frequency of low pass filter of Primary PID derivative
 #define LP_CORNER_FREQ_ROTOR 20 						// 20 - Corner frequency of low pass filter of Rotor Angle
-#define DERIVATIVE_LOW_PASS_CORNER_FREQUENCY_ROTOR 50 	// 50 Corner frequency of low pass filter of Secondary PID derivative
+#define DERIVATIVE_LOW_PASS_CORNER_FREQUENCY_ROTOR 50 	// 50 - Corner frequency of low pass filter of Secondary PID derivative
+#define LP_NOISE_REJECTION_FILTER 25					// 10 - Corner frequency of low pass filter operating on noise rejection signal
+
 
 #define LQR_INTEGRAL_ENABLE 0							// Enables LQR mode including integral of rotor position error
 
@@ -285,7 +287,7 @@
 #define ENABLE_CONTROL_ACTION 1							// Enable control operation - default value of 1 (may be disabled for test operations)
 #define ENABLE_DUAL_PID 1						// Note ENABLE_DUAL_PID is set to 1 by default for summation of PID controllers
 												// for either Dual PID or LQR systems
-#define ENABLE_ENCODER_ANGLE_SLOPE_CORRECTION 1			// Set to 1 for PID // 0 LQR // 0 for Susp-Mode
+#define ENABLE_ENCODER_ANGLE_SLOPE_CORRECTION 0			// Set to 1 for PID // 0 LQR // 0 for Susp-Mode
 #define LP_CORNER_FREQ_LONG_TERM 0.05					// Set to 0.05 for PID and for LQR
 #define ENCODER_ANGLE_SLOPE_CORRECTION_SCALE 22.5		// Set to 22.5
 #define ENCODER_ANGLE_SLOPE_CORRECTION_CYCLE_LIMIT	0	// Sets limit on operation time for slope angle correction
@@ -316,12 +318,13 @@
  */
 
 #define ENABLE_MOD_SIN_ROTOR_TRACKING 1		// If selected, disable all other modulation inputs
-#define MOD_SIN_CARRIER_FREQ 0.05			// 0.003 default
-#define MOD_SIN_START_CYCLES 60000			// 10000 default
+#define MOD_SIN_CARRIER_FREQ 0.15			// 0.003 default
+#define MOD_SIN_START_CYCLES 4000			// 10000 default
 #define MOD_SIN_AMPLITUDE 600				// 600 default
-#define MOD_SIN_MODULATION_FREQ  0.01		// 0.001 default
+#define MOD_SIN_MODULATION_FREQ  0.02		// 0.001 default
+#define MOD_SIN_MODULATION_MIN 100			// Default 100
 /* Define for High Speed System */
-#define MOD_SIN_SAMPLE_RATE 600.0			// 500.0 default for Low Speed
+#define MOD_SIN_SAMPLE_RATE 500.0			// 500.0 default for Low Speed
 #define ENABLE_SIN_MOD 1					// 1 default
 
 #define ENABLE_ROTOR_CHIRP 0				// If selected, disable all other modulation inputs
@@ -556,7 +559,12 @@ float proportional, rotor_p_gain;
 float integral, rotor_i_gain;
 float derivative, rotor_d_gain;
 
-/* Rotor position and tracking commmand */
+/* Reference tracking command */
+float reference_tracking_command;
+
+/* Pendulum position and tracking command */
+
+/* Rotor position and tracking command */
 int rotor_position;
 float rotor_position_command;
 float rotor_position_prev, rotor_position_filter, rotor_position_filter_prev;
@@ -571,8 +579,8 @@ int encoder_position_curr;
 int encoder_position_prev;
 
 /* Low pass filter variables */
-float fo, Wo, IWon, iir_0, iir_1, iir_2;
-float fo_LT, Wo_LT, IWon_LT;
+float fo, Wo, IWon, iir_0, iir_1, iir_2, Wo_nr, IWon_nr, iir_0_nr, iir_1_nr, iir_2_nr;
+float fo_LT, Wo_LT, IWon_LT, fo_nr;
 float iir_LT_0, iir_LT_1, iir_LT_2;
 
 /* Slope correction system variables */
@@ -590,7 +598,7 @@ float rotor_position_command_prev;
 
 /* Rotor impulse variables */
 int rotor_position_step_polarity;
-float impulse_start_index;
+int impulse_start_index;
 
 /* User configuration variables */
 uint32_t enable_control_action;
@@ -755,6 +763,8 @@ char mode_string_dec_max_d[UART_RX_BUFFER_SIZE];
 char mode_string_inc_max_d[UART_RX_BUFFER_SIZE];
 char mode_string_enable_step[UART_RX_BUFFER_SIZE];
 char mode_string_disable_step[UART_RX_BUFFER_SIZE];
+char mode_string_enable_pendulum_impulse[UART_RX_BUFFER_SIZE];
+char mode_string_disable_pendulum_impulse[UART_RX_BUFFER_SIZE];
 char mode_string_enable_load_dist[UART_RX_BUFFER_SIZE];
 char mode_string_disable_load_dist[UART_RX_BUFFER_SIZE];
 char mode_string_enable_noise_rej_step[UART_RX_BUFFER_SIZE];
