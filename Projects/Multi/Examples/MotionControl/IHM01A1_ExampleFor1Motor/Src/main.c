@@ -362,9 +362,9 @@ int main(void) {
 	encoder_position_prev = 0;
 	angle_scale = ENCODER_READ_ANGLE_SCALE;
 	/*Initialize rotor control variables */
-	rotor_position_target = 0;
-	rotor_position_target_curr = 0;
-	rotor_position_target_prev = 0;
+	rotor_control_target = 0;
+	rotor_control_target_curr = 0;
+	rotor_control_target_prev = 0;
 	/*Initialize rotor tracking signal variables */
 	enable_rotor_chirp = 0;
 	rotor_chirp_start_freq = ROTOR_CHIRP_START_FREQ;
@@ -915,7 +915,7 @@ int main(void) {
 		error_sum_prev = 0;
 		error_sum_filter_prev = 0;
 		adaptive_state = 4;
-		rotor_position_target_prev = 0;
+		rotor_control_target_prev = 0;
 		rotor_position_command_prev = 0;
 		enable_high_speed_sampling = ENABLE_HIGH_SPEED_SAMPLING_MODE;
 		slope_prev = 0;
@@ -1139,7 +1139,7 @@ int main(void) {
 
 			pid_filter_control_execute(pid_filter, current_error, sample_period,
 					deriv_lp_corner_f);
-			rotor_position_target = pid_filter->control_output*STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+			rotor_control_target = pid_filter->control_output*STEPPER_READ_POSITION_STEPS_PER_DEGREE;
 
 			/* Acquire rotor position and compute low pass filtered rotor position */
 
@@ -1340,19 +1340,19 @@ int main(void) {
 
 				pid_filter_control_execute(rotor_pid, current_error_rotor,
 						sample_period_rotor, deriv_lp_corner_f_rotor);
-				rotor_position_target = pid_filter->control_output + rotor_pid->control_output;
+				rotor_control_target = pid_filter->control_output + rotor_pid->control_output;
 
 				/*
 				 * Scaling of rotor_position_target satisfies requirement for operation of integrator
 				 * mode actuator
 				 */
 
-				rotor_position_target = rotor_position_target*STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+				rotor_control_target = rotor_control_target*STEPPER_READ_POSITION_STEPS_PER_DEGREE;
 
 				/* Load Disturbance Sensitivity Function signal introduction */
 				if (enable_disturbance_rejection_step == 1){
 					/* Scale amplitude of rotor position command to equal that of rotor_position_target */
-					rotor_position_target = rotor_position_target - rotor_position_command * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+					rotor_control_target = rotor_control_target - rotor_position_command * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
 				}
 			}
 
@@ -1373,28 +1373,28 @@ int main(void) {
 			/* Output rate limiter */
 
 
-			rotor_target_in = rotor_position_target;
+			rotor_target_in = rotor_control_target;
 
 			/* Limiter of control signal output for position control mode */
 			if(ENABLE_LIMITER == 1 && ACCEL_CONTROL == 0){
 
-				if ((rotor_position_target - rotor_position_target_prev) >= LIMITER_THRESHOLD) {
-					rotor_position_target = rotor_position_target_prev
-							+ (rotor_position_target - rotor_position_target_prev) / (LIMITER_SLOPE*LIMITER_THRESHOLD);
-					slope = rotor_position_target - rotor_position_target_prev;
+				if ((rotor_control_target - rotor_control_target_prev) >= LIMITER_THRESHOLD) {
+					rotor_control_target = rotor_control_target_prev
+							+ (rotor_control_target - rotor_control_target_prev) / (LIMITER_SLOPE*LIMITER_THRESHOLD);
+					slope = rotor_control_target - rotor_control_target_prev;
 				}
-				if ((rotor_position_target - rotor_position_target_prev) <= -LIMITER_THRESHOLD) {
-					rotor_position_target = rotor_position_target_prev
-							+ (rotor_position_target - rotor_position_target_prev) /  (LIMITER_SLOPE*LIMITER_THRESHOLD);
-					slope = rotor_position_target - rotor_position_target_prev;
+				if ((rotor_control_target - rotor_control_target_prev) <= -LIMITER_THRESHOLD) {
+					rotor_control_target = rotor_control_target_prev
+							+ (rotor_control_target - rotor_control_target_prev) /  (LIMITER_SLOPE*LIMITER_THRESHOLD);
+					slope = rotor_control_target - rotor_control_target_prev;
 				}
 				if (slope_prev < 0 && slope == 0) {
-					rotor_position_target = rotor_position_target_prev
-							- 2 * (rotor_position_target - rotor_position_target_prev) /  (LIMITER_SLOPE*LIMITER_THRESHOLD);
+					rotor_control_target = rotor_control_target_prev
+							- 2 * (rotor_control_target - rotor_control_target_prev) /  (LIMITER_SLOPE*LIMITER_THRESHOLD);
 				}
 				if (slope_prev > 0 && slope == 0) {
-					rotor_position_target = rotor_position_target_prev
-							- 2 * (rotor_position_target - rotor_position_target_prev) /  (LIMITER_SLOPE*LIMITER_THRESHOLD);
+					rotor_control_target = rotor_control_target_prev
+							- 2 * (rotor_control_target - rotor_control_target_prev) /  (LIMITER_SLOPE*LIMITER_THRESHOLD);
 				}
 				slope_prev = slope;
 			}
@@ -1448,7 +1448,7 @@ int main(void) {
 			}
 			/* Select display parameter corresponding to requested selection of Sensitivity Functions */
 			if (enable_disturbance_rejection_step == 1) { display_parameter = rotor_position; }
-			else if (enable_noise_rejection_step == 1) { noise_rej_signal = rotor_position_target; }
+			else if (enable_noise_rejection_step == 1) { noise_rej_signal = rotor_control_target; }
 			else if (enable_sensitivity_fnc_step == 1)  { display_parameter = rotor_position_command - rotor_position; }
 			else { display_parameter = rotor_position; }
 
@@ -1475,7 +1475,7 @@ int main(void) {
 					sprintf(msg, "%i\t%i\t%i\t%i\t%i\t%.1f\t%i\t%i\t%i\r\n", cycle_period_sum,
 							(int) (tick_cycle_current - tick_cycle_previous),
 							encoder_position, display_parameter, (int)(pid_filter->control_output)/10,
-							rotor_position_command, chirp_cycle, rotor_position_target/10,
+							rotor_position_command, chirp_cycle, rotor_control_target/10,
 							(int)(rotor_pid->control_output)/10);
 				}
 
@@ -1506,14 +1506,14 @@ int main(void) {
 
 			if (ACCEL_CONTROL == 0) {
 				rotor_position_delta = ROTOR_POSITION_MAX_DIFF;
-				rotor_position_target_curr = rotor_position_target;
-				if ((rotor_position_target_curr - rotor_position_target_prev)
+				rotor_control_target_curr = rotor_control_target;
+				if ((rotor_control_target_curr - rotor_control_target_prev)
 						< -rotor_position_delta) {
-					rotor_position_target = rotor_position_target_prev
+					rotor_control_target = rotor_control_target_prev
 							- rotor_position_delta;
-				} else if ((rotor_position_target_curr - rotor_position_target_prev)
+				} else if ((rotor_control_target_curr - rotor_control_target_prev)
 						> rotor_position_delta) {
-					rotor_position_target = rotor_position_target_prev
+					rotor_control_target = rotor_control_target_prev
 							+ rotor_position_delta;
 				}
 			}
@@ -1531,13 +1531,13 @@ int main(void) {
 			 * Record current value of rotor_position_command tracking signal
 			 * and control signal, rotor_position_target for performance monitoring and adaptive control
 			 */
-			rotor_position_target_prev = rotor_position_target;
+			rotor_control_target_prev = rotor_control_target;
 			rotor_position_command_prev = rotor_position_command;
 
 			if (ACCEL_CONTROL == 1) {
-				apply_acceleration(rotor_position_target, &target_velocity_prescaled, SAMPLE_FREQUENCY);
+				apply_acceleration(rotor_control_target, &target_velocity_prescaled, SAMPLE_FREQUENCY);
 			} else {
-				BSP_MotorControl_GoTo(0, rotor_position_target/2);
+				BSP_MotorControl_GoTo(0, rotor_control_target/2);
 			}
 		}
 

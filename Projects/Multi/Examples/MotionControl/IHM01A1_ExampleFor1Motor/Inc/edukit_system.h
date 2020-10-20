@@ -533,9 +533,9 @@ uint32_t RxBuffer_WriteIdx;
 uint32_t readBytes;
 
 /* Control system output signal */
-int rotor_position_target;
-int rotor_position_target_curr;
-int rotor_position_target_prev;
+int rotor_control_target;
+int rotor_control_target_curr;
+int rotor_control_target_prev;
 
 /* Control system variables */
 int rotor_position_delta;
