@@ -905,7 +905,7 @@ int main(void) {
 		tick_cycle_start = HAL_GetTick();
 		tick_cycle_previous = tick_cycle_start;
 		tick_cycle_current =  tick_cycle_start;
-		tick_cycle_current = tick_cycle_start;
+		tick_cycle_target = (uint64_t) tick_cycle_start << 10;
 		chirp_cycle = 0;
 		chirp_dwell_cycle = 0;
 		pendulum_position_command = 0;
@@ -1001,6 +1001,17 @@ int main(void) {
 			if (i > cycle_count && ENABLE_CYCLE_INFINITE == 0) {
 				break;
 			}
+
+			// Delay to maintain sample rate
+			tick_cycle_target += (uint32_t) (T_SAMPLE * 1000 * (1<<10)); // Give tick_cycle_target precision similar to microseconds
+			int cycle_delay = (int) (tick_cycle_target >> 10) - HAL_GetTick();
+			if (cycle_delay >= 1) {
+				HAL_Delay(cycle_delay);
+			}
+
+			/******************************
+			 * BEGIN MEASUREMENT & CONTROL
+			 ******************************/
 
 			/*
 			 * Acquire encoder position and correct for initial angle value of encoder measured at
@@ -1357,21 +1368,7 @@ int main(void) {
 			}
 
 
-			/* Compute 100 cycle time average of cycle period for system performance measurement */
-			if(i == 0){
-				cycle_period_start = HAL_GetTick();
-				cycle_period_sum = 100*T_SAMPLE*1000 - 1;
-			}
-			if(i % 100 == 0){
-				cycle_period_sum = HAL_GetTick() - cycle_period_start;
-				cycle_period_start = HAL_GetTick();
-			}
-			tick = HAL_GetTick();
-			tick_cycle_previous = tick_cycle_current;
-			tick_cycle_current = tick;
-
 			/* Output rate limiter */
-
 
 			rotor_target_in = rotor_control_target;
 
@@ -1399,6 +1396,58 @@ int main(void) {
 				slope_prev = slope;
 			}
 
+			/* Limit maximum excursion in rotor angle at each cycle step for position control mode */
+			if (ACCEL_CONTROL == 0) {
+				rotor_position_delta = ROTOR_POSITION_MAX_DIFF;
+				rotor_control_target_curr = rotor_control_target;
+				if ((rotor_control_target_curr - rotor_control_target_prev)
+						< -rotor_position_delta) {
+					rotor_control_target = rotor_control_target_prev
+							- rotor_position_delta;
+				} else if ((rotor_control_target_curr - rotor_control_target_prev)
+						> rotor_position_delta) {
+					rotor_control_target = rotor_control_target_prev
+							+ rotor_position_delta;
+				}
+			}
+
+			/*
+			 * Record current value of rotor_position_command tracking signal
+			 * and control signal, rotor_position_target for performance monitoring and adaptive control
+			 */
+			rotor_control_target_prev = rotor_control_target;
+			rotor_position_command_prev = rotor_position_command;
+
+			if (ACCEL_CONTROL == 1) {
+				apply_acceleration(rotor_control_target, &target_velocity_prescaled, SAMPLE_FREQUENCY);
+			} else {
+				BSP_MotorControl_GoTo(0, rotor_control_target/2);
+			}
+
+			/******************************
+			 * END MEASUREMENT & CONTROL
+			 ******************************/
+
+			/* Introduce pendulum displacement disturbance */
+			int initial_rotor_position;
+			if (ENABLE_PENDULUM_DISPLACEMENT_DISTURBANCE == 1 && i % PENDULUM_DISPLACEMENT_DISTURBANCE_CYCLE == 0 && i >= PENDULUM_DISPLACEMENT_DISTURBANCE_CYCLE){
+				ret = rotor_position_read(&initial_rotor_position);
+				BSP_MotorControl_GoTo(0, initial_rotor_position + 30);
+				HAL_Delay(200);
+			}
+
+			/* Compute 100 cycle time average of cycle period for system performance measurement */
+			if(i == 1){
+				cycle_period_start = HAL_GetTick();
+				cycle_period_sum = 100*T_SAMPLE*1000 - 1;
+			}
+			if(i % 100 == 0){
+				cycle_period_sum = HAL_GetTick() - cycle_period_start;
+				cycle_period_start = HAL_GetTick();
+			}
+			tick = HAL_GetTick();
+			tick_cycle_previous = tick_cycle_current;
+			tick_cycle_current = tick;
 
 			/* High speed sampling mode data reporting */
 			if (enable_high_speed_sampling == 1 && enable_rotor_chirp == 1 && enable_rotor_tracking_comb_signal == 0 && ACCEL_CONTROL_DATA == 0){
@@ -1438,14 +1487,7 @@ int main(void) {
 						(clock_int_time/100000));
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 			}
-			/*
-			 * Normal mode data reporting provides data output each 10th cycle
-			 * The 1 tick (1 millisecond) loop delay is removed during this report to compensate
-			 * for delay introduced by data transport line over 115200 baud
-			 */
-			if (i % 10 != 0 && enable_high_speed_sampling == 0){
-				HAL_Delay(CYCLE_DELAY);
-			}
+
 			/* Select display parameter corresponding to requested selection of Sensitivity Functions */
 			if (enable_disturbance_rejection_step == 1) { display_parameter = rotor_position; }
 			else if (enable_noise_rejection_step == 1) { noise_rej_signal = rotor_control_target; }
@@ -1500,44 +1542,6 @@ int main(void) {
 
 
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-			}
-
-			/* Limit maximum excursion in rotor angle at each cycle step for position control mode */
-
-			if (ACCEL_CONTROL == 0) {
-				rotor_position_delta = ROTOR_POSITION_MAX_DIFF;
-				rotor_control_target_curr = rotor_control_target;
-				if ((rotor_control_target_curr - rotor_control_target_prev)
-						< -rotor_position_delta) {
-					rotor_control_target = rotor_control_target_prev
-							- rotor_position_delta;
-				} else if ((rotor_control_target_curr - rotor_control_target_prev)
-						> rotor_position_delta) {
-					rotor_control_target = rotor_control_target_prev
-							+ rotor_position_delta;
-				}
-			}
-
-
-			/* Introduce pendulum displacement disturbance */
-			int initial_rotor_position;
-			if (ENABLE_PENDULUM_DISPLACEMENT_DISTURBANCE == 1 && i % PENDULUM_DISPLACEMENT_DISTURBANCE_CYCLE == 0 && i >= PENDULUM_DISPLACEMENT_DISTURBANCE_CYCLE){
-				ret = rotor_position_read(&initial_rotor_position);
-				BSP_MotorControl_GoTo(0, initial_rotor_position + 30);
-				HAL_Delay(200);
-			}
-
-			/*
-			 * Record current value of rotor_position_command tracking signal
-			 * and control signal, rotor_position_target for performance monitoring and adaptive control
-			 */
-			rotor_control_target_prev = rotor_control_target;
-			rotor_position_command_prev = rotor_position_command;
-
-			if (ACCEL_CONTROL == 1) {
-				apply_acceleration(rotor_control_target, &target_velocity_prescaled, SAMPLE_FREQUENCY);
-			} else {
-				BSP_MotorControl_GoTo(0, rotor_control_target/2);
 			}
 		}
 

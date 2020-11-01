@@ -76,18 +76,15 @@
  *
  */
 
-/* Define value for 800 Hz Mode is 800 */
 #define ENABLE_800Hz_MODE 0
 //#define ENABLE_800Hz
 #ifdef ENABLE_800Hz
-/* Define value for High Speed System is 800 */
-#define SAMPLE_FREQUENCY 800					// Set to 500 for default
-/* Define value for High Speed System is 0.0012 */
-#define T_SAMPLE_ROTOR 0.0012					// Set to 0.002 for default
-/* Define value for High Speed System is 0.0012 */
-#define T_SAMPLE 0.0012							// Set to 0.002 for default
-/* Define value for Cycle Delay for High Speed System is 0 */
-#define CYCLE_DELAY 0
+/* Define value for High Speed System is 833 */
+#define SAMPLE_FREQUENCY 833					// Set to 500 for default
+/* Define value for High Speed System is 0.00120048019 */
+#define T_SAMPLE_ROTOR 0.00120048019			// Set to 0.002 for default
+/* Define value for High Speed System is 0.00120048019 */
+#define T_SAMPLE 0.00120048019					// Set to 0.002 for default
 #endif
 
 #ifndef ENABLE_800Hz
@@ -97,8 +94,6 @@
 #define T_SAMPLE_ROTOR 0.002					// Set to 0.002 for default
 /* Define value for High Speed System is 0.002 */
 #define T_SAMPLE 0.002						// Set to 0.002 for default
-/* Define value for Cycle Delay for High Speed System is 1 */
-#define CYCLE_DELAY 1
 #endif
 
 
@@ -519,6 +514,7 @@ char test_msg[128];
 uint32_t tick, tick_cycle_current, tick_cycle_previous, tick_cycle_start,
 tick_read_cycle, tick_read_cycle_start,tick_wait_start,tick_wait;
 
+uint64_t tick_cycle_target;
 float Tsample, Tsample_rotor, test_time;
 float angle_scale;
 int enable_high_speed_sampling;
