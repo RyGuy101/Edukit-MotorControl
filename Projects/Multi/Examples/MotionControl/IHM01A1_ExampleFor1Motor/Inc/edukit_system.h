@@ -529,9 +529,9 @@ uint32_t RxBuffer_WriteIdx;
 uint32_t readBytes;
 
 /* Control system output signal */
-int rotor_control_target;
-int rotor_control_target_curr;
-int rotor_control_target_prev;
+int rotor_control_target_steps;
+int rotor_control_target_steps_curr;
+int rotor_control_target_steps_prev;
 
 /* Control system variables */
 int rotor_position_delta;
@@ -541,7 +541,7 @@ int ret;
 
 /* PID control system variables */
 float windup, rotor_windup;
-float *current_error, *current_error_rotor;
+float *current_error_steps, *current_error_rotor_steps;
 float *sample_period, *sample_period_rotor;
 
 /* Loop timing measurement variables */
@@ -561,12 +561,12 @@ float reference_tracking_command;
 /* Pendulum position and tracking command */
 
 /* Rotor position and tracking command */
-int rotor_position;
-float rotor_position_command;
-float rotor_position_prev, rotor_position_filter, rotor_position_filter_prev;
+int rotor_position_steps;
+float rotor_position_command_steps;
+float rotor_position_steps_prev, rotor_position_filter_steps, rotor_position_filter_steps_prev;
 float rotor_position_diff, rotor_position_diff_prev;
 float rotor_position_diff_filter, rotor_position_diff_filter_prev;
-int rotor_target_in;
+int rotor_target_in_steps;
 
 /* Encoder position variables */
 int encoder_position;
@@ -590,7 +590,7 @@ float adaptive_error, adaptive_threshold_low, adaptive_threshold_high;
 float error_sum_prev, error_sum, error_sum_filter_prev, error_sum_filter;
 int adaptive_entry_tick, adaptive_dwell_period;
 int enable_adaptive_mode, adaptive_state, adaptive_state_change;
-float rotor_position_command_prev;
+float rotor_position_command_steps_prev;
 
 /* Rotor impulse variables */
 int rotor_position_step_polarity;
@@ -621,7 +621,7 @@ float rotor_chirp_frequency;
 float rotor_chirp_amplitude;
 int rotor_chirp_step_period;
 
-float pendulum_position_command;
+float pendulum_position_command_steps;
 
 /* Modulates sine tracking signal system variables */
 int enable_mod_sin_rotor_tracking;
