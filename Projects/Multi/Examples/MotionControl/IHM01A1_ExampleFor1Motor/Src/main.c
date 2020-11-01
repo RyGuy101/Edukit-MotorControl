@@ -233,6 +233,9 @@ void Main_StepClockHandler() {
 	}
 }
 
+/*
+ *  Apply acceleration to stepper motor, with acc in steps/s^2
+ */
 void apply_acceleration(int32_t acc, int32_t* target_velocity_prescaled, uint16_t sample_freq_hz) {
 	/*
 	 *  Stepper motor acceleration, speed, direction and position control developed by Ryan Nemiroff
@@ -1150,7 +1153,7 @@ int main(void) {
 
 			pid_filter_control_execute(pid_filter, current_error, sample_period,
 					deriv_lp_corner_f);
-			rotor_control_target = pid_filter->control_output*STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+			rotor_control_target = pid_filter->control_output;
 
 			/* Acquire rotor position and compute low pass filtered rotor position */
 
@@ -1353,17 +1356,10 @@ int main(void) {
 						sample_period_rotor, deriv_lp_corner_f_rotor);
 				rotor_control_target = pid_filter->control_output + rotor_pid->control_output;
 
-				/*
-				 * Scaling of rotor_position_target satisfies requirement for operation of integrator
-				 * mode actuator
-				 */
-
-				rotor_control_target = rotor_control_target*STEPPER_READ_POSITION_STEPS_PER_DEGREE;
 
 				/* Load Disturbance Sensitivity Function signal introduction */
 				if (enable_disturbance_rejection_step == 1){
-					/* Scale amplitude of rotor position command to equal that of rotor_position_target */
-					rotor_control_target = rotor_control_target - rotor_position_command * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+					rotor_control_target = rotor_control_target - rotor_position_command;
 				}
 			}
 
@@ -1413,7 +1409,7 @@ int main(void) {
 
 			/*
 			 * Record current value of rotor_position_command tracking signal
-			 * and control signal, rotor_position_target for performance monitoring and adaptive control
+			 * and control signal, rotor_control_target for performance monitoring and adaptive control
 			 */
 			rotor_control_target_prev = rotor_control_target;
 			rotor_position_command_prev = rotor_position_command;
