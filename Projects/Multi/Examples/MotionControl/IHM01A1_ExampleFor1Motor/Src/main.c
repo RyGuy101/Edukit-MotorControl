@@ -673,18 +673,21 @@ int main(void) {
 			rotor_encoder_test();
 		}
 
-		/* Configure Primary and Secondary PID controller data structures */
+		/*
+		 * Configure Primary and Secondary PID controller data structures
+		 * Scale by STEPPER_READ_POSITION_STEPS_PER_DEGREE to convert gains from deg/step to steps/step
+		 */
 		pid_filter->integrator_windup_limit = windup;
 		pid_filter->warn = 0;
-		pid_filter->p_gain = proportional;
-		pid_filter->i_gain = integral;
-		pid_filter->d_gain = derivative;
+		pid_filter->p_gain = proportional * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		pid_filter->i_gain = integral * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		pid_filter->d_gain = derivative * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
 
 		rotor_pid->integrator_windup_limit = rotor_windup;
 		rotor_pid->warn = 0;
-		rotor_pid->p_gain = rotor_p_gain;
-		rotor_pid->i_gain = rotor_i_gain;
-		rotor_pid->d_gain = rotor_d_gain;
+		rotor_pid->p_gain = rotor_p_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		rotor_pid->i_gain = rotor_i_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		rotor_pid->d_gain = rotor_d_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
 
 
 		/*
