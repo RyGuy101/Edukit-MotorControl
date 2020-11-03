@@ -903,7 +903,7 @@ int main(void) {
 		rotor_position_diff_filter = 0;
 		rotor_position_diff_filter_prev = 0;
 		rotor_position_step_polarity = 1;
-		encoder_angle_slope_corr = 0;
+		encoder_angle_slope_corr_steps = 0;
 		rotor_sine_drive = 0;
 		sine_drive_transition = 0;
 		rotor_mod_control = 1.0;
@@ -1115,7 +1115,7 @@ int main(void) {
 			/* Apply slope correction */
 			if (ENABLE_ENCODER_ANGLE_SLOPE_CORRECTION == 1 ) {
 				if ((i < ENCODER_ANGLE_SLOPE_CORRECTION_CYCLE_LIMIT) || (ENCODER_ANGLE_SLOPE_CORRECTION_CYCLE_LIMIT == 0)) {
-					encoder_angle_slope_corr = (rotor_position_diff_filter / STEPPER_READ_POSITION_STEPS_PER_DEGREE) / ENCODER_ANGLE_SLOPE_CORRECTION_SCALE;
+					encoder_angle_slope_corr_steps = rotor_position_diff_filter / ENCODER_ANGLE_SLOPE_CORRECTION_SCALE;
 				}
 			}
 
@@ -1137,7 +1137,7 @@ int main(void) {
 			 * Apply scale factor to match angle to step gain of rotor actuator
 			 *
 			 */
-			*current_error_steps = encoder_angle_slope_corr
+			*current_error_steps = encoder_angle_slope_corr_steps
 					+ (float) ((ENCODER_ANGLE_POLARITY)
 							* (encoder_position / (ENCODER_READ_ANGLE_SCALE/STEPPER_READ_POSITION_STEPS_PER_DEGREE)));
 

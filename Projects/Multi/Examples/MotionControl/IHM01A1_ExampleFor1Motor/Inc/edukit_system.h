@@ -284,7 +284,7 @@
 												// for either Dual PID or LQR systems
 #define ENABLE_ENCODER_ANGLE_SLOPE_CORRECTION 0			// Set to 1 for PID // 0 LQR // 0 for Susp-Mode
 #define LP_CORNER_FREQ_LONG_TERM 0.05					// Set to 0.05 for PID and for LQR
-#define ENCODER_ANGLE_SLOPE_CORRECTION_SCALE 22.5		// Set to 22.5
+#define ENCODER_ANGLE_SLOPE_CORRECTION_SCALE 200		// Set to 200
 #define ENCODER_ANGLE_SLOPE_CORRECTION_CYCLE_LIMIT	0	// Sets limit on operation time for slope angle correction
 														// If set to zero, slope correction operates at all times
 														// Default set to zer
@@ -582,7 +582,7 @@ float iir_LT_0, iir_LT_1, iir_LT_2;
 /* Slope correction system variables */
 int slope;
 int slope_prev;
-float encoder_angle_slope_corr;
+float encoder_angle_slope_corr_steps;
 
 /* Adaptive control variables */
 
