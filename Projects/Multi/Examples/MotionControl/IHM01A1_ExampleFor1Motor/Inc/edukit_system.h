@@ -346,6 +346,7 @@
 
 
 #define ENABLE_DISTURBANCE_REJECTION_STEP 1
+#define ROTOR_DISTURBANCE_SCALE 1.0 // Scale rotor tracking command to be applied as disturbance when enable_disturbance_rejection_step == 1
 
 /*
  * Set ENABLE_ENCODER_TEST to 1 to enable a testing of encoder response for verification
@@ -367,9 +368,6 @@
 
 #define ENABLE_ROTOR_ACTUATOR_TEST 0
 #define ROTOR_ACTUATOR_TEST_CYCLES 1
-
-/* Scale rotor tracking command to be applied as disturbance when enable_disturbance_rejection_step == 1 */
-#define ROTOR_DISTURBANCE_SCALE 1.0
 
 /*
  * Setting ENABLE_ROTOR_POSITION_STEP_RESPONSE_CYCLE = 1 applies a Rotor Position tracking
@@ -492,7 +490,7 @@ T_Serial_Msg Msg;
 
 uint8_t RxBuffer[UART_RX_BUFFER_SIZE];
 uint16_t Extract_Msg(uint8_t *CircularBuff, uint16_t StartPos, uint16_t LastPos,
-		uint16_t BufMaxLen, T_Serial_Msg *Msg);
+		uint16_t BufMaxLen, T_Serial_Msg *Msg, bool echo);
 
 
 
@@ -650,6 +648,14 @@ uint16_t current_speed;
 /*Pendulum system ID variable */
 int enable_pendulum_sysid_test;
 
+/* Full system identification variables */
+int enable_full_sysid;
+int full_sysid_enable_square_wave;
+float full_sysid_max_amplitude_deg_per_s_2;
+float full_sysid_min_freq_hz;
+float full_sysid_max_freq_hz;
+float full_sysid_freq_inc_hz;
+
 /* Rotor comb drive system variables */
 int enable_rotor_tracking_comb_signal;
 float rotor_track_comb_signal_frequency;
@@ -705,6 +711,7 @@ int mode_15;			// Enable interactive control of rotor actuator
 int mode_16;			// Enable load disturbance function step mode
 int mode_17;			// Enable noise disturbance function step mode
 int mode_18;			// Enable sensitivity function step mode
+int mode_19;			// Enable full system identification mode
 int mode_quit;			// Initiate exit from control loop
 int mode_interactive;		// Enable continued terminal interactive user session
 int mode_index_prev, mode_index_command;
@@ -738,6 +745,7 @@ char mode_string_mode_load_dist[UART_RX_BUFFER_SIZE];
 char mode_string_mode_load_dist_step[UART_RX_BUFFER_SIZE];
 char mode_string_mode_noise_dist_step[UART_RX_BUFFER_SIZE];
 char mode_string_mode_plant_dist_step[UART_RX_BUFFER_SIZE];
+char mode_string_mode_full_sysid[UART_RX_BUFFER_SIZE];
 char mode_string_dec_pend_p[UART_RX_BUFFER_SIZE];
 char mode_string_inc_pend_p[UART_RX_BUFFER_SIZE];
 char mode_string_dec_pend_i[UART_RX_BUFFER_SIZE];
