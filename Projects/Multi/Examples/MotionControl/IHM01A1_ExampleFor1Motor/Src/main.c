@@ -1362,7 +1362,7 @@ int main(void) {
 
 				/* Load Disturbance Sensitivity Function signal introduction */
 				if (enable_disturbance_rejection_step == 1){
-					rotor_control_target_steps = rotor_control_target_steps - rotor_position_command_steps;
+					rotor_control_target_steps = rotor_control_target_steps - (rotor_position_command_steps * ROTOR_DISTURBANCE_SCALE);
 				}
 			}
 

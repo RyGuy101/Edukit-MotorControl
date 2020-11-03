@@ -368,6 +368,9 @@
 #define ENABLE_ROTOR_ACTUATOR_TEST 0
 #define ROTOR_ACTUATOR_TEST_CYCLES 1
 
+/* Scale rotor tracking command to be applied as disturbance when enable_disturbance_rejection_step == 1 */
+#define ROTOR_DISTURBANCE_SCALE 1.0
+
 /*
  * Setting ENABLE_ROTOR_POSITION_STEP_RESPONSE_CYCLE = 1 applies a Rotor Position tracking
  * command input step signal
