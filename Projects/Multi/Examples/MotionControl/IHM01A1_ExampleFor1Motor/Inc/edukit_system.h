@@ -661,6 +661,7 @@ float full_sysid_max_amplitude_deg_per_s_2;
 float full_sysid_min_freq_hz;
 float full_sysid_max_freq_hz;
 float full_sysid_freq_inc_hz;
+int full_sysid_start_index;
 
 /* Rotor comb drive system variables */
 int enable_rotor_tracking_comb_signal;

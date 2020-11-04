@@ -909,6 +909,7 @@ int main(void) {
 		rotor_track_comb_command = 0;
 		noise_rej_signal_prev = 0;
 		noise_rej_signal_filter_prev = 0;
+		full_sysid_start_index = -1;
 
 		/* Clear read buffer */
 		for (k = 0; k < SERIAL_MSG_MAXLEN; k++) {
@@ -951,7 +952,11 @@ int main(void) {
 				mode_index_command = mode_index_identification((char *)Msg.Data, config_command, & adjust_increment,
 						pid_filter, rotor_pid);
 				strcpy(config_message, (char *) Msg.Data);
-				if (strcmp(config_message, "q") == 0){
+				if (strcmp(config_message, ">") == 0){
+					if (enable_full_sysid) {
+						full_sysid_start_index = i + 50;
+					}
+				} else if (strcmp(config_message, "q") == 0){
 					sprintf(tmp_string,
 							"\n\rExit Control Loop Command Received ");
 					HAL_UART_Transmit(&huart2, (uint8_t*) tmp_string,
@@ -1387,9 +1392,9 @@ int main(void) {
 				}
 			}
 
-			if (enable_full_sysid) {
-				float total_acc = 0;//TODO start on signal
-				float t = (i - 1) / ((float) SAMPLE_FREQUENCY);
+			if (full_sysid_start_index != -1 && i >= full_sysid_start_index) {
+				float total_acc = 0;
+				float t = (i - full_sysid_start_index) / ((float) SAMPLE_FREQUENCY);
 				int n = 0;
 				for (float f = full_sysid_min_freq_hz; f <= full_sysid_max_freq_hz; f += full_sysid_freq_inc_hz) {
 					float wave_value = cosf(M_TWOPI * f * t);

@@ -1809,6 +1809,12 @@ void user_configuration(void){
 							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 						}
 
+						sprintf(msg, "\n\rThe input signal will start when \"Log Data\" is activated from the Real-Time Workbench.\n\r");
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg,strlen(msg), HAL_MAX_DELAY);
+						sprintf(msg, "Alternatively, enter '>' and hit return.\n\r");
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg,strlen(msg), HAL_MAX_DELAY);
+						HAL_Delay(3000);
+
 						break;
 
 					/* Default start mode */
