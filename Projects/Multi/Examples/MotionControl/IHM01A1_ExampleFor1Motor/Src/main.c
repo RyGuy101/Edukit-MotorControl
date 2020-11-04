@@ -1410,6 +1410,22 @@ int main(void) {
 				}
 			}
 
+			if (enable_full_sysid) {
+				float total_acc = 0;//TODO start on signal
+				float t = (i - 1) / ((float) SAMPLE_FREQUENCY);
+				int n = 0;
+				for (float f = full_sysid_min_freq_hz; f <= full_sysid_max_freq_hz; f += full_sysid_freq_inc_hz) {
+					float wave_value = cosf(M_TWOPI * f * t);
+					if (full_sysid_enable_square_wave) {
+						wave_value = wave_value > 0 ? 1 : -1;
+					}
+					total_acc += wave_value;
+					n++;
+				}
+				rotor_control_target_steps = lroundf(total_acc * STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE * full_sysid_max_amplitude_deg_per_s_2 / n);
+				rotor_target_in_steps = rotor_control_target_steps; // Used for logging
+			}
+
 			/*
 			 * Record current value of rotor_position_command tracking signal
 			 * and control signal, rotor_control_target_steps for performance monitoring and adaptive control

@@ -633,6 +633,7 @@ void set_mode_strings(void){
 	sprintf(mode_string_mode_high_speed_test, "z");
 	sprintf(mode_string_mode_motor_characterization_mode, "c");
 	sprintf(mode_string_mode_pendulum_sysid_test, "p");
+	sprintf(mode_string_mode_full_sysid, "I");
 	sprintf(mode_string_dec_accel, "d");
 	sprintf(mode_string_inc_accel, "i");
 	sprintf(mode_string_inc_amp, "j");
@@ -697,6 +698,7 @@ void set_mode_strings(void){
 	mode_16 = 16;			// Enable load disturbance function mode
 	mode_17 = 17;			// Enable noise disturbance function step mode
 	mode_18 = 18;			// Enable sensitivity function step mode
+	mode_19 = 19;			// Enable full system identification mode
 	mode_quit = 0;			// Initiate exit from control loop
 }
 
@@ -735,6 +737,8 @@ void user_prompt(void){
 	//	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 	//	sprintf(msg, "Enter 'M' at prompt for Plant Disturbance Step Mode\n\r");
 	//	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+	sprintf(msg, "Enter 'I' at prompt for Full System Identification Mode\n\r");
+	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 }
 
 /*
@@ -777,6 +781,11 @@ void get_user_mode_index(char * user_string, int * char_mode_select, int * mode_
 
 	if (strcmp(user_string,mode_string_mode_8)==0){
 		*mode_index = 8;
+		*char_mode_select = 1;
+	}
+
+	if (strcmp(user_string,mode_string_mode_full_sysid)==0){
+		*mode_index = 19;
 		*char_mode_select = 1;
 	}
 
@@ -846,6 +855,11 @@ void get_user_mode_index(char * user_string, int * char_mode_select, int * mode_
 		*mode_interactive = 1;
 		break;
 
+	case 19:
+		*mode_index = mode_19;
+		*mode_interactive = 1;
+		break;
+
 	default:
 		*mode_index = mode_1;
 		break;
@@ -864,6 +878,8 @@ void user_configuration(void){
 	enable_encoder_test = 0;
 	enable_rotor_actuator_high_speed_test = 0;
 	enable_motor_actuator_characterization_mode = 0;
+	enable_full_sysid = 0;
+
 	enable_rotor_tracking_comb_signal = 0;
 	rotor_track_comb_amplitude = 0;
 	enable_disturbance_rejection_step = 0;
@@ -923,6 +939,7 @@ void user_configuration(void){
 			enable_rotor_chirp = 0;
 			enable_pendulum_position_impulse_response_cycle = 0;
 			enable_pendulum_sysid_test = 0;
+			enable_full_sysid = 0;
 			enable_rotor_tracking_comb_signal = 0;
 			enable_disturbance_rejection_step = 0;
 			enable_noise_rejection_step = 0;
@@ -1797,6 +1814,69 @@ void user_configuration(void){
 								strlen(msg), HAL_MAX_DELAY);
 						break;
 
+					/* Full system identification mode */
+					case 19:
+						enable_full_sysid = 1;
+
+						select_suspended_mode = 1;
+						proportional = 0;
+						integral = 0;
+						derivative = 0;
+						rotor_p_gain = 0;
+						rotor_i_gain = 0;
+						rotor_d_gain = 0;
+						enable_mod_sin_rotor_tracking = 0;
+						enable_rotor_position_step_response_cycle = 0;
+						enable_rotor_chirp = 0;
+						enable_rotor_tracking_comb_signal = 0;
+
+						full_sysid_enable_square_wave = 0;
+						full_sysid_max_amplitude_deg_per_s_2 = 0;
+						full_sysid_min_freq_hz = 0;
+						full_sysid_max_freq_hz = 0;
+						full_sysid_freq_inc_hz = 0;
+
+						sprintf(msg, "\n\r *** Starting System Identification (using frequency \"comb\") ***\n\r ");
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+
+						sprintf(msg, "\n\rEnter 1 to enable Square Wave mode (Default is Sine Wave); 0 to Disable: ");
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+						read_int(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx, &readBytes, &full_sysid_enable_square_wave);
+						sprintf(msg, "%i", full_sysid_enable_square_wave);
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+
+						sprintf(msg, "\n\rEnter maximum acceleration amplitude in deg/s^2: ");
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg,strlen(msg), HAL_MAX_DELAY);
+						read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &full_sysid_max_amplitude_deg_per_s_2);
+						sprintf(msg, "%.02f", full_sysid_max_amplitude_deg_per_s_2);
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+
+						sprintf(msg, "\n\rEnter minimum frequency for input signal in Hz: ");
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+						read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &full_sysid_min_freq_hz);
+						sprintf(msg, "%.02f", full_sysid_min_freq_hz);
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+
+						sprintf(msg, "\n\rEnter maximum frequency for input signal in Hz: ");
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+						read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &full_sysid_max_freq_hz);
+						sprintf(msg, "%.02f", full_sysid_max_freq_hz);
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+
+						sprintf(msg, "\n\rEnter frequency increment size in Hz: ");
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+						read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &full_sysid_freq_inc_hz);
+						sprintf(msg, "%.02f", full_sysid_freq_inc_hz);
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+
+						sprintf(msg, "\n\rGenerating a comb with these frequencies (Hz):\n\r");
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+						for (float f = full_sysid_min_freq_hz; f <= full_sysid_max_freq_hz; f += full_sysid_freq_inc_hz) {
+							sprintf(msg, "%.02f\t", f);
+							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+						}
+
+						break;
 
 					/* Default start mode */
 					default:
