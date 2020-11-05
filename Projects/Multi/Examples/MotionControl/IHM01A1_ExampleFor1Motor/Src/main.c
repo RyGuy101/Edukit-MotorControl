@@ -953,7 +953,7 @@ int main(void) {
 						pid_filter, rotor_pid);
 				strcpy(config_message, (char *) Msg.Data);
 				if (strcmp(config_message, ">") == 0){
-					if (enable_full_sysid) {
+					if (enable_full_sysid && full_sysid_start_index == -1) {
 						full_sysid_start_index = i + 50;
 					}
 				} else if (strcmp(config_message, "q") == 0){
