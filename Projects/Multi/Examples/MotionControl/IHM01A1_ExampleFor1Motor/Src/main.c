@@ -270,20 +270,25 @@ void apply_acceleration(int32_t acc, int32_t* target_velocity_prescaled, uint16_
 
 	uint32_t speed_prescaled;
 	if (new_dir == FORWARD) {
-		if (*target_velocity_prescaled < L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED)) {
-			*target_velocity_prescaled = L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED);
-		} else if (*target_velocity_prescaled > L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED)) {
-			*target_velocity_prescaled = L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED);
-		}
 		speed_prescaled = *target_velocity_prescaled;
 	} else {
-		if (*target_velocity_prescaled > -L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED)) {
-			*target_velocity_prescaled = -L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED);
-		} else if (*target_velocity_prescaled < -L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED)) {
-			*target_velocity_prescaled = -L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED);
-		}
 		speed_prescaled = *target_velocity_prescaled * -1;
 	}
+	if (speed_prescaled < L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED)) {
+		speed_prescaled = L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED);
+	} else if (speed_prescaled > L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED)) {
+		speed_prescaled = L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED);
+	}
+
+	// Exhibit old behavior of altering target_velocity_prescaled in control mode.
+	if (enable_full_sysid == 0) {
+		if (new_dir == FORWARD) {
+			*target_velocity_prescaled = speed_prescaled;
+		} else {
+			*target_velocity_prescaled = speed_prescaled * -1;
+		}
+	}
+
 	uint32_t effective_pwm_period = desired_pwm_period_local;
 	desired_pwm_period_local = HAL_RCC_GetSysClockFreq() / speed_prescaled;
 
@@ -928,6 +933,8 @@ int main(void) {
 		if (ACCEL_CONTROL == 1) {
 			BSP_MotorControl_HardStop(0);
 			L6474_CmdEnable(0);
+			target_velocity_prescaled = 0;
+			L6474_Board_SetDirectionGpio(0, BACKWARD);
 		}
 
 		while (enable_control_action == 1) {
