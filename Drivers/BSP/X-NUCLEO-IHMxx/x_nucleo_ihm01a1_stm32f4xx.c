@@ -53,8 +53,6 @@
   * @{
   */   
     
-/// Timer Prescaler
-#define TIMER_PRESCALER (1024)
 
 /// SPI Maximum Timeout values for flags waiting loops
 #define SPIx_TIMEOUT_MAX                      ((uint32_t)0x1000)
@@ -220,15 +218,6 @@ void L6474_Board_GpioInit(uint8_t deviceId)
  **********************************************************/
 uint32_t L6474_Board_Pwm1GetCounter() {
 	return hTimPwm1.Instance->CNT;
-}
-
-/******************************************************//**
- * @brief  Prescale a frequency in preparation for calculating counter period for PWM1 used by device 0
- * @retval prescaled frequency
- **********************************************************/
-int32_t L6474_Board_Pwm1PrescaleFreq(int32_t freq)
-{
-  return (TIMER_PRESCALER * BSP_MOTOR_CONTROL_BOARD_PWM1_FREQ_RESCALER * freq);
 }
 
 

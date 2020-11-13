@@ -180,7 +180,7 @@ L6474_Init_t gL6474InitParams = {
 #define MAXIMUM_DECELERATION 131071
 #define MIN_POSSIBLE_SPEED 1
 #define MAXIMUM_SPEED 131071
-#define DELAY_TOLERANCE 32000
+#define DELAY_TOLERANCE  (RCC_MAX_FREQUENCY / L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED)) // Set to the maximum PWM period (RCC_MAX_FREQUENCY = HAL_RCC_GetSysClockFreq() = 84000000)
 
 static volatile uint16_t gLastError;
 /* Private function prototypes -----------------------------------------------*/
@@ -278,15 +278,6 @@ void apply_acceleration(int32_t acc, int32_t* target_velocity_prescaled, uint16_
 		speed_prescaled = L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED);
 	} else if (speed_prescaled > L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED)) {
 		speed_prescaled = L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED);
-	}
-
-	// Exhibit old behavior of altering target_velocity_prescaled in control mode.
-	if (enable_full_sysid == 0) {
-		if (new_dir == FORWARD) {
-			*target_velocity_prescaled = speed_prescaled;
-		} else {
-			*target_velocity_prescaled = speed_prescaled * -1;
-		}
 	}
 
 	uint32_t effective_pwm_period = desired_pwm_period_local;

@@ -669,7 +669,7 @@ extern void L6474_Board_GpioInit(uint8_t deviceId);
 ///Get the current value of the counter used by PWM1
 extern uint32_t L6474_Board_Pwm1GetCounter();
 // Prescale a frequency in preparation for calculating counter period for PWM1
-extern int32_t L6474_Board_Pwm1PrescaleFreq(int32_t freq);
+#define L6474_Board_Pwm1PrescaleFreq(freq) (TIMER_PRESCALER * BSP_MOTOR_CONTROL_BOARD_PWM1_FREQ_RESCALER * freq)
 ///Set PWM1 period
 extern void L6474_Board_Pwm1SetPeriod(uint32_t period);
 ///Set PWM1 frequency and start it
