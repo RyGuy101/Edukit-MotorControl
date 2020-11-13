@@ -1394,16 +1394,13 @@ int main(void) {
 			if (full_sysid_start_index != -1 && i >= full_sysid_start_index) {
 				float total_acc = 0;
 				float t = (i - full_sysid_start_index) / ((float) SAMPLE_FREQUENCY);
-				int n = 0;
-				for (float f = full_sysid_min_freq_hz; f <= full_sysid_max_freq_hz; f += full_sysid_freq_inc_hz) {
-					float wave_value = cosf(M_TWOPI * f * t);
-					if (full_sysid_enable_square_wave) {
-						wave_value = wave_value > 0 ? 1 : -1;
-					}
+				float w = full_sysid_min_freq_hz * M_TWOPI;
+				for (int k_step = 0; k_step < full_sysid_num_freqs; k_step++) {
+					float wave_value = w * cosf(w * t); // multiply acceleration wave by omega to keep consistent velocity amplitude
 					total_acc += wave_value;
-					n++;
+					w *= full_sysid_freq_log_step;
 				}
-				rotor_control_target_steps = lroundf(total_acc * STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE * full_sysid_max_amplitude_deg_per_s_2 / n);
+				rotor_control_target_steps = lroundf((full_sysid_max_vel_amplitude_deg_per_s/full_sysid_num_freqs) * total_acc * STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE);
 			}
 
 			/*

@@ -1763,57 +1763,79 @@ void user_configuration(void){
 						enable_rotor_chirp = 0;
 						enable_rotor_tracking_comb_signal = 0;
 
-						full_sysid_enable_square_wave = 0;
-						full_sysid_max_amplitude_deg_per_s_2 = 0;
+						full_sysid_max_vel_amplitude_deg_per_s = 0;
 						full_sysid_min_freq_hz = 0;
 						full_sysid_max_freq_hz = 0;
-						full_sysid_freq_inc_hz = 0;
+						full_sysid_num_freqs = 0;
 
 						sprintf(msg, "\n\r *** Starting System Identification (using frequency \"comb\") ***\n\r ");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 
-						sprintf(msg, "\n\rEnter 1 to enable Square Wave mode (Default is Sine Wave); 0 to Disable: ");
-						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-						read_int(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx, &readBytes, &full_sysid_enable_square_wave);
-						sprintf(msg, "%i", full_sysid_enable_square_wave);
-						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-
-						sprintf(msg, "\n\rEnter maximum acceleration amplitude in deg/s^2: ");
+						sprintf(msg, "\n\rEnter maximum velocity amplitude in deg/s (default 150 deg/s): ");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg,strlen(msg), HAL_MAX_DELAY);
-						read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &full_sysid_max_amplitude_deg_per_s_2);
-						sprintf(msg, "%.02f", full_sysid_max_amplitude_deg_per_s_2);
+						read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &full_sysid_max_vel_amplitude_deg_per_s);
+						if (full_sysid_max_vel_amplitude_deg_per_s == 0) {
+							full_sysid_max_vel_amplitude_deg_per_s = 150;
+						}
+						sprintf(msg, "%.02f", full_sysid_max_vel_amplitude_deg_per_s);
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 
-						sprintf(msg, "\n\rEnter minimum frequency for input signal in Hz: ");
+						sprintf(msg, "\n\rEnter minimum frequency for input signal in Hz (default 0.2 Hz): ");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 						read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &full_sysid_min_freq_hz);
+						if (full_sysid_min_freq_hz == 0) {
+							full_sysid_min_freq_hz = 0.2;
+						}
 						sprintf(msg, "%.02f", full_sysid_min_freq_hz);
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 
-						sprintf(msg, "\n\rEnter maximum frequency for input signal in Hz: ");
+						sprintf(msg, "\n\rEnter maximum frequency for input signal in Hz (default 5 Hz): ");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 						read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &full_sysid_max_freq_hz);
+						if (full_sysid_max_freq_hz == 0) {
+							full_sysid_max_freq_hz = 5;
+						}
 						sprintf(msg, "%.02f", full_sysid_max_freq_hz);
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 
-						sprintf(msg, "\n\rEnter frequency increment size in Hz: ");
+						sprintf(msg, "\n\rEnter the number of frequency steps (default 11): ");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-						read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &full_sysid_freq_inc_hz);
-						sprintf(msg, "%.02f", full_sysid_freq_inc_hz);
+						read_int(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx, &readBytes, &full_sysid_num_freqs);
+						if (full_sysid_num_freqs == 0) {
+							full_sysid_num_freqs = 11;
+						}
+						sprintf(msg, "%i", full_sysid_num_freqs);
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 
-						sprintf(msg, "\n\rGenerating a comb with these frequencies (Hz):\n\r");
+						full_sysid_freq_log_step = powf(full_sysid_max_freq_hz/full_sysid_min_freq_hz, 1.0f/(full_sysid_num_freqs-1));
+
+						sprintf(msg, "\n\rGenerating a comb with %d frequencies, using log step multiplier %f.\n\r", full_sysid_num_freqs, full_sysid_freq_log_step);
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-						for (float f = full_sysid_min_freq_hz; f <= full_sysid_max_freq_hz; f += full_sysid_freq_inc_hz) {
+						sprintf(msg, "List of frequencies (Hz):\n\r");
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+						float f = full_sysid_min_freq_hz;
+						for (int i = 0; i < full_sysid_num_freqs; i++) {
 							sprintf(msg, "%.02f\t", f);
 							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+							f *= full_sysid_freq_log_step;
+						}
+						sprintf(msg, "\n\rList of frequencies (rad/s):\n\r");
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+						f = full_sysid_min_freq_hz * M_TWOPI;
+						for (int i = 0; i < full_sysid_num_freqs; i++) {
+							sprintf(msg, "%.02f\t", f);
+							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+							f *= full_sysid_freq_log_step;
 						}
 
-						sprintf(msg, "\n\rThe input signal will start when \"Log Data\" is activated from the Real-Time Workbench.\n\r");
+						sprintf(msg, "\n\rThe input signal will start when \"Log Data\" is activated from the Real-Time Workbench. "
+									 "Alternatively, enter '>' and hit return once system starts.\n\r");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg,strlen(msg), HAL_MAX_DELAY);
-						sprintf(msg, "Alternatively, enter '>' and hit return.\n\r");
+						sprintf(msg, "\n\rPress enter to proceed");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg,strlen(msg), HAL_MAX_DELAY);
-						HAL_Delay(3000);
+						read_char(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, NULL);
+						sprintf(msg, "\n\r");
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg,strlen(msg), HAL_MAX_DELAY);
 
 						break;
 

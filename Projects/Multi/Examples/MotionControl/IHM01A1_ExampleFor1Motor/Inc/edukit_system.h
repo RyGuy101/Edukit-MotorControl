@@ -656,11 +656,11 @@ int enable_pendulum_sysid_test;
 
 /* Full system identification variables */
 int enable_full_sysid;
-int full_sysid_enable_square_wave;
-float full_sysid_max_amplitude_deg_per_s_2;
+float full_sysid_max_vel_amplitude_deg_per_s;
 float full_sysid_min_freq_hz;
 float full_sysid_max_freq_hz;
-float full_sysid_freq_inc_hz;
+int full_sysid_num_freqs;
+float full_sysid_freq_log_step;
 int full_sysid_start_index;
 
 /* Rotor comb drive system variables */
