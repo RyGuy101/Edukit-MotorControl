@@ -318,12 +318,12 @@ void assign_mode_1(pid_filter_control_parameters * pid_filter,
 	rotor_p_gain = SECONDARY_PROPORTIONAL_MODE_1;
 	rotor_i_gain = SECONDARY_INTEGRAL_MODE_1;
 	rotor_d_gain = SECONDARY_DERIVATIVE_MODE_1;
-	pid_filter->p_gain = proportional * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-	pid_filter->i_gain = integral * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-	pid_filter->d_gain = derivative * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-	rotor_pid->p_gain = rotor_p_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-	rotor_pid->i_gain = rotor_i_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-	rotor_pid->d_gain = rotor_d_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+	pid_filter->p_gain = proportional * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	pid_filter->i_gain = integral * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	pid_filter->d_gain = derivative * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	rotor_pid->p_gain = rotor_p_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	rotor_pid->i_gain = rotor_i_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	rotor_pid->d_gain = rotor_d_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 	torq_current_val = 800;
 	L6474_SetAnalogValue(0, L6474_TVAL, torq_current_val);
 }
@@ -337,12 +337,12 @@ void assign_mode_2(pid_filter_control_parameters * pid_filter,
 	rotor_p_gain = SECONDARY_PROPORTIONAL_MODE_2;
 	rotor_i_gain = SECONDARY_INTEGRAL_MODE_2;
 	rotor_d_gain = SECONDARY_DERIVATIVE_MODE_2;
-	pid_filter->p_gain = proportional * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-	pid_filter->i_gain = integral * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-	pid_filter->d_gain = derivative * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-	rotor_pid->p_gain = rotor_p_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-	rotor_pid->i_gain = rotor_i_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-	rotor_pid->d_gain = rotor_d_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+	pid_filter->p_gain = proportional * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	pid_filter->i_gain = integral * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	pid_filter->d_gain = derivative * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	rotor_pid->p_gain = rotor_p_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	rotor_pid->i_gain = rotor_i_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	rotor_pid->d_gain = rotor_d_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 	torq_current_val = 800;
 	L6474_SetAnalogValue(0, L6474_TVAL, torq_current_val);
 }
@@ -356,12 +356,12 @@ void assign_mode_3(pid_filter_control_parameters * pid_filter,
 	rotor_p_gain = SECONDARY_PROPORTIONAL_MODE_3;
 	rotor_i_gain = SECONDARY_INTEGRAL_MODE_3;
 	rotor_d_gain = SECONDARY_DERIVATIVE_MODE_3;
-	pid_filter->p_gain = proportional * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-	pid_filter->i_gain = integral * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-	pid_filter->d_gain = derivative * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-	rotor_pid->p_gain = rotor_p_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-	rotor_pid->i_gain = rotor_i_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-	rotor_pid->d_gain = rotor_d_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+	pid_filter->p_gain = proportional * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	pid_filter->i_gain = integral * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	pid_filter->d_gain = derivative * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	rotor_pid->p_gain = rotor_p_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	rotor_pid->i_gain = rotor_i_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	rotor_pid->d_gain = rotor_d_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 	torq_current_val = 800;
 	L6474_SetAnalogValue(0, L6474_TVAL, torq_current_val);
 }
@@ -378,45 +378,45 @@ int mode_index_identification(char * user_config_input, int config_command_contr
 		pid_filter_control_parameters * rotor_pid){
 
 	if (strcmp(user_config_input, mode_string_inc_pend_p) == 0){
-		pid_filter->p_gain = pid_filter->p_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		pid_filter->p_gain = pid_filter->p_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_dec_pend_p) == 0) {
-		pid_filter->p_gain = pid_filter->p_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		pid_filter->p_gain = pid_filter->p_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 		//if (pid_filter->p_gain <= 0) { pid_filter->p_gain = 0; }
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_inc_pend_d) == 0) {
-		pid_filter->d_gain = pid_filter->d_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		pid_filter->d_gain = pid_filter->d_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_dec_pend_d) == 0) {
-		pid_filter->d_gain = pid_filter->d_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		pid_filter->d_gain = pid_filter->d_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 		//if (pid_filter->d_gain <= 0) { pid_filter->d_gain = 0; }
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_inc_pend_i) == 0) {
-		pid_filter->i_gain = pid_filter->i_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		pid_filter->i_gain = pid_filter->i_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_dec_pend_i) == 0) {
-		pid_filter->i_gain = pid_filter->i_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		pid_filter->i_gain = pid_filter->i_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 		//if (pid_filter->i_gain <= 0) { pid_filter->i_gain = 0; }
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_inc_rotor_p) == 0){
-		rotor_pid->p_gain = rotor_pid->p_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		rotor_pid->p_gain = rotor_pid->p_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_dec_rotor_p) == 0) {
-		rotor_pid->p_gain = rotor_pid->p_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		rotor_pid->p_gain = rotor_pid->p_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 		//if (rotor_pid->p_gain <= 0) { rotor_pid->p_gain = 0; }
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_inc_rotor_d) == 0) {
-		rotor_pid->d_gain = rotor_pid->d_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		rotor_pid->d_gain = rotor_pid->d_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_dec_rotor_d) == 0) {
-		rotor_pid->d_gain = rotor_pid->d_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		rotor_pid->d_gain = rotor_pid->d_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 		//if (rotor_pid->d_gain <= 0) { rotor_pid->d_gain = 0; }
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_inc_rotor_i) == 0) {
-		rotor_pid->i_gain = rotor_pid->i_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		rotor_pid->i_gain = rotor_pid->i_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_dec_rotor_i) == 0) {
-		rotor_pid->i_gain = rotor_pid->i_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		rotor_pid->i_gain = rotor_pid->i_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 		//if (rotor_pid->i_gain <= 0) { rotor_pid->i_gain = 0; }
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_dec_torq_c) == 0) {
@@ -509,12 +509,12 @@ int mode_index_identification(char * user_config_input, int config_command_contr
 		L6474_SetAcceleration(0, MAX_ACCEL);
 		L6474_SetMinSpeed(0, MIN_SPEED_MODE_5);
 		L6474_SetMaxSpeed(0, MAX_SPEED_MODE_5);
-		pid_filter->p_gain = PRIMARY_PROPORTIONAL_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-		pid_filter->i_gain = PRIMARY_INTEGRAL_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-		pid_filter->d_gain = PRIMARY_DERIVATIVE_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-		rotor_pid->p_gain = SECONDARY_PROPORTIONAL_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-		rotor_pid->i_gain = SECONDARY_INTEGRAL_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-		rotor_pid->d_gain = SECONDARY_DERIVATIVE_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		pid_filter->p_gain = PRIMARY_PROPORTIONAL_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		pid_filter->i_gain = PRIMARY_INTEGRAL_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		pid_filter->d_gain = PRIMARY_DERIVATIVE_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		rotor_pid->p_gain = SECONDARY_PROPORTIONAL_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		rotor_pid->i_gain = SECONDARY_INTEGRAL_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		rotor_pid->d_gain = SECONDARY_DERIVATIVE_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 		enable_adaptive_mode = 0;
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_enable_step ) == 0 ){

@@ -176,10 +176,10 @@ L6474_Init_t gL6474InitParams = {
 #define ACCEL_CONTROL_DATA 0		// Set to 1 for display of timing data
 #define ACCEL_CONTROL 1 			// Set to 1 to enable acceleration control. Set to 0 to use position target control.
 #define PWM_COUNT_SAFETY_MARGIN 2
-#define MAXIMUM_ACCELERATION 65535
-#define MAXIMUM_DECELERATION 65535
+#define MAXIMUM_ACCELERATION 131071
+#define MAXIMUM_DECELERATION 131071
 #define MIN_POSSIBLE_SPEED 1
-#define MAXIMUM_SPEED 65535
+#define MAXIMUM_SPEED 131071
 #define DELAY_TOLERANCE 32000
 
 static volatile uint16_t gLastError;
@@ -682,17 +682,17 @@ int main(void) {
 
 		pid_filter->integrator_windup_limit = windup;
 		pid_filter->warn = 0;
-		pid_filter->p_gain = proportional * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-		pid_filter->i_gain = integral * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-		pid_filter->d_gain = derivative * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		pid_filter->p_gain = proportional * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		pid_filter->i_gain = integral * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		pid_filter->d_gain = derivative * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 
 		rotor_pid->integrator_windup_limit = rotor_windup;
 		rotor_pid->warn = 0;
-		rotor_pid->p_gain = rotor_p_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-		rotor_pid->i_gain = rotor_i_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
-		rotor_pid->d_gain = rotor_d_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		rotor_pid->p_gain = rotor_p_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		rotor_pid->i_gain = rotor_i_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		rotor_pid->d_gain = rotor_d_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 
-		integral_compensator_gain = integral_compensator_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE;
+		integral_compensator_gain = integral_compensator_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
 
 		/*
 		 * Initiate start of Control System

@@ -140,7 +140,7 @@
 #endif /* #ifndef BSP_MOTOR_CONTROL_BOARD_USE_SPI2 */
 
 /// PWM1 frequency rescaler (1 for HW PWM, 2 for SW PWM)
-#define BSP_MOTOR_CONTROL_BOARD_PWM1_FREQ_RESCALER    (2)//(1)
+#define BSP_MOTOR_CONTROL_BOARD_PWM1_FREQ_RESCALER    (1)//(2)
 /// PWM2 frequency rescaler (1 for HW PWM, 2 for SW PWM)
 #define BSP_MOTOR_CONTROL_BOARD_PWM2_FREQ_RESCALER    (1)   
 /// PWM3 frequency rescaler (1 for HW PWM, 2 for SW PWM)   
