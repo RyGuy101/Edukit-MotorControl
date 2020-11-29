@@ -1774,33 +1774,52 @@ void user_configuration(void){
 						sprintf(msg, "\n\rEnter maximum velocity amplitude in deg/s (default 150 deg/s): ");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg,strlen(msg), HAL_MAX_DELAY);
 						read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &full_sysid_max_vel_amplitude_deg_per_s);
+						full_sysid_max_vel_amplitude_deg_per_s = fabsf(full_sysid_max_vel_amplitude_deg_per_s);
 						if (full_sysid_max_vel_amplitude_deg_per_s == 0) {
 							full_sysid_max_vel_amplitude_deg_per_s = 150;
 						}
 						sprintf(msg, "%.02f", full_sysid_max_vel_amplitude_deg_per_s);
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+						if (full_sysid_max_vel_amplitude_deg_per_s > 270) {
+							full_sysid_max_vel_amplitude_deg_per_s = 270;
+							sprintf(msg, "\n\rCapping max velocity at %.02f deg/s", full_sysid_max_vel_amplitude_deg_per_s);
+							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+						}
 
 						sprintf(msg, "\n\rEnter minimum frequency for input signal in Hz (default 0.2 Hz): ");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 						read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &full_sysid_min_freq_hz);
+						full_sysid_min_freq_hz = fabsf(full_sysid_min_freq_hz);
 						if (full_sysid_min_freq_hz == 0) {
 							full_sysid_min_freq_hz = 0.2;
 						}
 						sprintf(msg, "%.02f", full_sysid_min_freq_hz);
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+						if (full_sysid_min_freq_hz > 20) {
+							full_sysid_min_freq_hz = 20;
+							sprintf(msg, "\n\rCapping min frequency at %.02f Hz", full_sysid_min_freq_hz);
+							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+						}
 
 						sprintf(msg, "\n\rEnter maximum frequency for input signal in Hz (default 5 Hz): ");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 						read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &full_sysid_max_freq_hz);
+						full_sysid_max_freq_hz = fabsf(full_sysid_max_freq_hz);
 						if (full_sysid_max_freq_hz == 0) {
 							full_sysid_max_freq_hz = 5;
 						}
 						sprintf(msg, "%.02f", full_sysid_max_freq_hz);
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+						if (full_sysid_max_freq_hz > 20) {
+							full_sysid_max_freq_hz = 20;
+							sprintf(msg, "\n\rCapping max frequency at %.02f Hz", full_sysid_max_freq_hz);
+							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+						}
 
 						sprintf(msg, "\n\rEnter the number of frequency steps (default 11): ");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 						read_int(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx, &readBytes, &full_sysid_num_freqs);
+						full_sysid_num_freqs = abs(full_sysid_num_freqs);
 						if (full_sysid_num_freqs == 0) {
 							full_sysid_num_freqs = 11;
 						}
