@@ -253,26 +253,26 @@ void apply_acceleration(float * acc, float * target_velocity_prescaled, uint16_t
 	motorDir_t old_dir = *target_velocity_prescaled > 0 ? FORWARD : BACKWARD;
 
 	if (old_dir == FORWARD) {
-		if (acc > MAXIMUM_ACCELERATION) {
-			acc = MAXIMUM_ACCELERATION;
-		} else if (acc < -MAXIMUM_DECELERATION) {
-			acc = -MAXIMUM_DECELERATION;
+		if (*acc > MAXIMUM_ACCELERATION) {
+			*acc = MAXIMUM_ACCELERATION;
+		} else if (*acc < -MAXIMUM_DECELERATION) {
+			*acc = -MAXIMUM_DECELERATION;
 		}
 	} else {
-		if (acc < -MAXIMUM_ACCELERATION) {
-			acc = -MAXIMUM_ACCELERATION;
-		} else if (acc > MAXIMUM_DECELERATION) {
-			acc = MAXIMUM_DECELERATION;
+		if (*acc < -MAXIMUM_ACCELERATION) {
+			*acc = -MAXIMUM_ACCELERATION;
+		} else if (*acc > MAXIMUM_DECELERATION) {
+			*acc = MAXIMUM_DECELERATION;
 		}	
 	}
 
-	*target_velocity_prescaled += L6474_Board_Pwm1PrescaleFreq(acc) / sample_freq_hz;
+	*target_velocity_prescaled += L6474_Board_Pwm1PrescaleFreq(*acc) / sample_freq_hz;
 	motorDir_t new_dir = (int)(*target_velocity_prescaled) > 0 ? FORWARD : BACKWARD;
 
-	if (target_velocity_prescaled > L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED)) {
-		target_velocity_prescaled = L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED);
-	} else if (target_velocity_prescaled < -L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED)) {
-		target_velocity_prescaled = -L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED);
+	if (*target_velocity_prescaled > L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED)) {
+		*target_velocity_prescaled = L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED);
+	} else if (*target_velocity_prescaled < -L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED)) {
+		*target_velocity_prescaled = -L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED);
 	}
 
 	float speed_prescaled;
