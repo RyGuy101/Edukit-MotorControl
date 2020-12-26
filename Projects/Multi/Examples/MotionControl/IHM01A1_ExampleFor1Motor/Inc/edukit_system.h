@@ -159,8 +159,6 @@
 
 #define TORQ_CURRENT_DEFAULT 800				// Default torque current
 
-#define ENABLE_SPEED_PRESCALE 0					// Default of 1 enables rotor control limit for small error value
-
 #define ROTOR_POSITION_MAX_DIFF 500 			// Limit of maximum permitted difference in motor command values on successive cycles
 
 #define ENABLE_SUSPENDED_PENDULUM_CONTROL 0     // Set to 0 for Inverted Pendulum Mode - Set to 1 for Suspended Pendulum Mode
@@ -505,7 +503,6 @@ volatile uint32_t desired_pwm_period;
 volatile uint32_t current_pwm_period;
 
 float target_velocity_prescaled;
-int32_t enable_speed_prescale;
 
 /* System data reporting */
 char tmp_string[256];
@@ -813,8 +810,6 @@ char mode_string_dec_step_size[UART_RX_BUFFER_SIZE];
 char mode_string_select_mode_5[UART_RX_BUFFER_SIZE];
 char mode_string_enable_high_speed_sampling[UART_RX_BUFFER_SIZE];
 char mode_string_disable_high_speed_sampling[UART_RX_BUFFER_SIZE];
-char mode_string_enable_speed_prescale[UART_RX_BUFFER_SIZE];
-char mode_string_disable_speed_prescale[UART_RX_BUFFER_SIZE];
 
 int char_mode_select;	// Flag detecting whether character mode select entered
 

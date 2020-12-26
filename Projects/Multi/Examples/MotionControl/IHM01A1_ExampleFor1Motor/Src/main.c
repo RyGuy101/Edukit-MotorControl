@@ -269,6 +269,12 @@ void apply_acceleration(float * acc, float * target_velocity_prescaled, uint16_t
 	*target_velocity_prescaled += L6474_Board_Pwm1PrescaleFreq(acc) / sample_freq_hz;
 	motorDir_t new_dir = (int)(*target_velocity_prescaled) > 0 ? FORWARD : BACKWARD;
 
+	if (target_velocity_prescaled > L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED)) {
+		target_velocity_prescaled = L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED);
+	} else if (target_velocity_prescaled < -L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED)) {
+		target_velocity_prescaled = -L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED);
+	}
+
 	float speed_prescaled;
 	if (new_dir == FORWARD) {
 		speed_prescaled = *target_velocity_prescaled;
@@ -277,8 +283,6 @@ void apply_acceleration(float * acc, float * target_velocity_prescaled, uint16_t
 	}
 	if (speed_prescaled < L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED)) {
 		speed_prescaled = L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED);
-	} else if (speed_prescaled > L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED)) {
-		speed_prescaled = L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED);
 	}
 
 
@@ -306,20 +310,6 @@ void apply_acceleration(float * acc, float * target_velocity_prescaled, uint16_t
 	} else {
 		L6474_Board_Pwm1SetPeriod(desired_pwm_period_local);
 		current_pwm_period = desired_pwm_period_local;
-	}
-
-	/*
-	 * Target velocity prescaling is disabled at user input request or under conditions of measurement
-	 * of sensitivity function or system identification.  This ensures that rotor position control
-	 * tolerance enabling stationary rotor position at low control error is not enabled. This may be valuable
-	 * in enhancing measurement accuracy and is not required for conventional applications by default
-	 */
-	if (enable_state_feedback == 0 && enable_rotor_plant_design == 0 && enable_speed_prescale == 1 && enable_full_sysid == 0 && enable_disturbance_rejection_step == 0 && enable_noise_rejection_step == 0 && enable_sensitivity_fnc_step == 0) {
-		if (new_dir == FORWARD) {
-			*target_velocity_prescaled = speed_prescaled;
-		} else {
-			*target_velocity_prescaled = speed_prescaled * -1;
-		}
 	}
 
 	desired_pwm_period = desired_pwm_period_local;
@@ -358,7 +348,6 @@ int main(void) {
 	apply_acc_start_time = 0;
 	clock_int_time = 0;
 	clock_int_tick = 0;
-	enable_speed_prescale = ENABLE_SPEED_PRESCALE;
 	/* Initialize PWM period variables used by step interrupt */
 	desired_pwm_period = 0;
 	current_pwm_period = 0;

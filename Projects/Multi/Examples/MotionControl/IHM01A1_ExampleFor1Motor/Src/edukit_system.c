@@ -591,12 +591,6 @@ int mode_index_identification(char * user_config_input, int config_command_contr
 	} else if (strcmp(user_config_input, mode_string_disable_high_speed_sampling ) == 0 ){
 		enable_high_speed_sampling = 0;
 		config_command = 1;
-	} else if (strcmp(user_config_input, mode_string_enable_speed_prescale ) == 0 ){
-		enable_speed_prescale = 1;
-		config_command = 1;
-	} else if (strcmp(user_config_input, mode_string_disable_speed_prescale ) == 0 ){
-		enable_speed_prescale = 0;
-		config_command = 1;
 	} else {
 		mode_index_command = atoi((char*) Msg.Data);
 	}
@@ -688,8 +682,6 @@ void set_mode_strings(void){
 	sprintf(mode_string_select_mode_5, "u");
 	sprintf(mode_string_enable_high_speed_sampling, "Y");
 	sprintf(mode_string_disable_high_speed_sampling, "y");
-	sprintf(mode_string_enable_speed_prescale, ":");
-	sprintf(mode_string_disable_speed_prescale, ";");
 
 
 	mode_1 = 1;				// Enable Model 1Enable Suspended Mode Motor Model M
