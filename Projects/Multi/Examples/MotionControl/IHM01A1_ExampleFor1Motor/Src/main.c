@@ -1554,16 +1554,14 @@ int main(void) {
 
 
 			if (ACCEL_CONTROL == 1) {
-
-				if (enable_rotor_plant_design == 1){
-					rotor_control_target_steps_filter_2 = rotor_plant_gain*rotor_control_target_steps_filter_2;
-					apply_acceleration(&rotor_control_target_steps_filter_2, &target_velocity_prescaled, SAMPLE_FREQUENCY);
-				}
-				if ((enable_rotor_plant_design == 1 && rotor_damping_coefficient == 0.0F && rotor_natural_frequency == 0.0F) || enable_rotor_plant_gain_design == 1){
+				if (enable_rotor_plant_gain_design == 1 || (enable_rotor_plant_design == 1 && rotor_damping_coefficient == 0.0F && rotor_natural_frequency == 0.0F)){
 					rotor_control_target_steps_gain = rotor_plant_gain * rotor_control_target_steps;
 					apply_acceleration(&rotor_control_target_steps_gain, &target_velocity_prescaled, SAMPLE_FREQUENCY);
-				}
-				if (enable_rotor_plant_design == 0 && enable_rotor_plant_gain_design == 0){
+				} else if (enable_rotor_plant_design == 1){
+					rotor_control_target_steps_filter_2 = rotor_plant_gain*rotor_control_target_steps_filter_2;
+					apply_acceleration(&rotor_control_target_steps_filter_2, &target_velocity_prescaled, SAMPLE_FREQUENCY);
+				} else {
+					// enable_rotor_plant_design == 0 && enable_rotor_plant_gain_design == 0
 					apply_acceleration(&rotor_control_target_steps, &target_velocity_prescaled, SAMPLE_FREQUENCY);
 				}
 			} else {
