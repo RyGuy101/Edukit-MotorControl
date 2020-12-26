@@ -1,5 +1,4 @@
 
-
 /*
  ******************************************************************************
  * @file    Multi/Examples/MotionControl/IHM01A1_ExampleFor1Motor/Src/main.c
@@ -169,42 +168,49 @@ L6474_Init_t gL6474InitParams = {
 
 
 
-/*
- * Apply acceleration
- */
+ /*
+  * Apply acceleration
+  */
 
-#define ACCEL_CONTROL_DATA 0		// Set to 1 for display of timing data
-#define ACCEL_CONTROL 1 			// Set to 1 to enable acceleration control. Set to 0 to use position target control.
-#define PWM_COUNT_SAFETY_MARGIN 2
-#define MAXIMUM_ACCELERATION 131071
-#define MAXIMUM_DECELERATION 131071
-#define MIN_POSSIBLE_SPEED 1
-#define MAXIMUM_SPEED 131071
-#define DELAY_TOLERANCE  (RCC_MAX_FREQUENCY / L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED)) // Set to the maximum PWM period (RCC_MAX_FREQUENCY = HAL_RCC_GetSysClockFreq() = 84000000)
+ #define ACCEL_CONTROL_DATA 0		// Set to 1 for display of timing data
+ #define ACCEL_CONTROL 1 			// Set to 1 to enable acceleration control. Set to 0 to use position target control.
+ #define PWM_COUNT_SAFETY_MARGIN 2
+ #define MAXIMUM_ACCELERATION 131071
+ #define MAXIMUM_DECELERATION 131071
+ #define MIN_POSSIBLE_SPEED 1
+ #define MAXIMUM_SPEED 131071
+ #define DELAY_TOLERANCE  (RCC_MAX_FREQUENCY / L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED)) // Set to the maximum PWM period (RCC_MAX_FREQUENCY = HAL_RCC_GetSysClockFreq() = 84000000)
+ static volatile uint16_t gLastError;
+ /* Private function prototypes -----------------------------------------------*/
+ static void MyFlagInterruptHandler(void);
+ static void MX_TIM3_Init(void);
+ static void MX_USART2_UART_Init(void);
+ void read_float(uint32_t * RxBuffer_ReadIdx, uint32_t * RxBuffer_WriteIdx , uint32_t * readBytes, float *float_return);
+ void Error_Handler(uint16_t error);
+ void read_int(uint32_t * RxBuffer_ReadIdx, uint32_t * RxBuffer_WriteIdx , uint32_t * readBytes, int * int_return);
+ void read_char(uint32_t * RxBuffer_ReadIdx, uint32_t * RxBuffer_WriteIdx , uint32_t * readBytes, char * char_return);
+ void select_mode_1(void);
+ void user_configuration(void);
+ int Delay_Pulse();
+ void Main_StepClockHandler();
+ void apply_acceleration(float * acc, float* target_velocity_prescaled, uint16_t sample_freq_hz);
 
-static volatile uint16_t gLastError;
-/* Private function prototypes -----------------------------------------------*/
-static void MyFlagInterruptHandler(void);
-static void MX_TIM3_Init(void);
-static void MX_USART2_UART_Init(void);
-void read_float(uint32_t * RxBuffer_ReadIdx, uint32_t * RxBuffer_WriteIdx , uint32_t * readBytes, float *float_return);
-void Error_Handler(uint16_t error);
-void read_int(uint32_t * RxBuffer_ReadIdx, uint32_t * RxBuffer_WriteIdx , uint32_t * readBytes, int * int_return);
-void read_char(uint32_t * RxBuffer_ReadIdx, uint32_t * RxBuffer_WriteIdx , uint32_t * readBytes, char * char_return);
-void select_mode_1(void);
-void user_configuration(void);
-int Delay_Pulse();
-void Main_StepClockHandler();
-void apply_acceleration(int32_t acc, int32_t* target_velocity_prescaled, uint16_t sample_freq_hz);
+#define delayUS_ASM(us) do {\
+	asm volatile (	"MOV R0,%[loops]\n\t"\
+			"1: \n\t"\
+			"SUB R0, #1\n\t"\
+			"CMP R0, #0\n\t"\
+			"BNE 1b \n\t" : : [loops] "r" (16*us) : "memory"\
+		      );\
+} while(0)
 
-
-int Delay_Pulse(){
-	if (desired_pwm_period < DELAY_TOLERANCE){
-		return 0;
-	} else {
-		return 1;
-	}
-}
+ int Delay_Pulse(){
+ 	if (desired_pwm_period < DELAY_TOLERANCE || enable_state_feedback == 1 || ENABLE_DELAY_TOLERANCE == 0){
+ 		return 0;
+ 	} else {
+ 		return 1;
+ 	}
+ }
 
 /*
  * PWM pulse (step) interrupt
@@ -229,11 +235,7 @@ void Main_StepClockHandler() {
 	}
 }
 
-/*
-*  Apply acceleration to stepper motor, with acc in steps/s^2
-*/
-
-void apply_acceleration(int32_t acc, int32_t* target_velocity_prescaled, uint16_t sample_freq_hz) {
+void apply_acceleration(float * acc_f, float * target_velocity_prescaled, uint16_t sample_freq_hz) {
 	/*
 	 *  Stepper motor acceleration, speed, direction and position control developed by Ryan Nemiroff
 	 */
@@ -241,10 +243,12 @@ void apply_acceleration(int32_t acc, int32_t* target_velocity_prescaled, uint16_
 
 	uint32_t current_pwm_period_local = current_pwm_period;
 	uint32_t desired_pwm_period_local = desired_pwm_period;
-
+	int32_t acc;
 	/*
 	 * Add time reporting
 	 */
+
+	acc = (int)(round(*acc_f));
 
 	apply_acc_start_time = *DWT_CYCCNT;
 
@@ -265,10 +269,10 @@ void apply_acceleration(int32_t acc, int32_t* target_velocity_prescaled, uint16_
 		}	
 	}
 
-	*target_velocity_prescaled += L6474_Board_Pwm1PrescaleFreq(acc) / sample_freq_hz;
-	motorDir_t new_dir = *target_velocity_prescaled > 0 ? FORWARD : BACKWARD;
+	*target_velocity_prescaled += round(L6474_Board_Pwm1PrescaleFreq(acc) / sample_freq_hz);
+	motorDir_t new_dir = (int)(*target_velocity_prescaled) > 0 ? FORWARD : BACKWARD;
 
-	uint32_t speed_prescaled;
+	float speed_prescaled;
 	if (new_dir == FORWARD) {
 		speed_prescaled = *target_velocity_prescaled;
 	} else {
@@ -280,8 +284,9 @@ void apply_acceleration(int32_t acc, int32_t* target_velocity_prescaled, uint16_
 		speed_prescaled = L6474_Board_Pwm1PrescaleFreq(MAXIMUM_SPEED);
 	}
 
+
 	uint32_t effective_pwm_period = desired_pwm_period_local;
-	desired_pwm_period_local = HAL_RCC_GetSysClockFreq() / speed_prescaled;
+	desired_pwm_period_local = (uint32_t)(round(HAL_RCC_GetSysClockFreq() / speed_prescaled));
 
 	if (old_dir != new_dir) {
 		L6474_Board_SetDirectionGpio(0, new_dir);
@@ -306,9 +311,35 @@ void apply_acceleration(int32_t acc, int32_t* target_velocity_prescaled, uint16_
 		current_pwm_period = desired_pwm_period_local;
 	}
 
+	/*
+	 * Target velocity prescaling is disabled at user input request or under conditions of measurement
+	 * of sensitivity function or system identification.  This ensures that rotor position control
+	 * tolerance enabling stationary rotor position at low control error is not enabled. This may be valuable
+	 * in enhancing measurement accuracy and is not required for conventional applications by default
+	 */
+	if (enable_state_feedback == 0 && enable_rotor_plant_design == 0 && enable_speed_prescale == 1 && enable_full_sysid == 0 && enable_disturbance_rejection_step == 0 && enable_noise_rejection_step == 0 && enable_sensitivity_fnc_step == 0) {
+		if (new_dir == FORWARD) {
+			*target_velocity_prescaled = speed_prescaled;
+		} else {
+			*target_velocity_prescaled = speed_prescaled * -1;
+		}
+	}
+
 	desired_pwm_period = desired_pwm_period_local;
 
 }
+
+__STATIC_INLINE void DWT_Delay_us(volatile uint32_t microseconds)
+{
+  uint32_t clk_cycle_start = DWT->CYCCNT;
+
+  /* Go to number of cycles for system */
+  microseconds *= (HAL_RCC_GetHCLKFreq() / 1000000);
+
+  /* Delay till end */
+  while ((DWT->CYCCNT - clk_cycle_start) < microseconds);
+}
+
 
 
 int main(void) {
@@ -330,13 +361,14 @@ int main(void) {
 	apply_acc_start_time = 0;
 	clock_int_time = 0;
 	clock_int_tick = 0;
+	enable_speed_prescale = ENABLE_SPEED_PRESCALE;
 	/* Initialize PWM period variables used by step interrupt */
 	desired_pwm_period = 0;
 	current_pwm_period = 0;
 	target_velocity_prescaled = 0;
 	/* Initialize default start mode and reporting mode */
 	mode_index = 1;
-	report_mode = 0;
+	report_mode = 1;
 	/*Initialize serial read variables */
 	RxBuffer_ReadIdx = 0;
 	RxBuffer_WriteIdx = 0;
@@ -351,6 +383,11 @@ int main(void) {
 	rotor_control_target_steps = 0;
 	rotor_control_target_steps_curr = 0;
 	rotor_control_target_steps_prev = 0;
+	/*Initialize rotor plant design transfer function computation variables */
+	rotor_control_target_steps_filter_prev_2 = 0.0;
+	rotor_control_target_steps_lp_filter_prev = 0.0;
+	rotor_control_target_steps_filter_prev_prev_2 = 0.0;
+	rotor_control_target_steps_prev_prev = 0.0;
 	/* Initialize LQR integral control variables */
 	current_error_rotor_integral = 0;
 	/*Initialize rotor tracking signal variables */
@@ -603,12 +640,10 @@ int main(void) {
 
 		/* Flush read buffer  */
 		for (k = 0; k < SERIAL_MSG_MAXLEN; k++) { Msg.Data[k] = 0; }
-		/* Start timer for onfiguration command read loop */
+		/* Start timer for configuration command read loop */
 		tick_read_cycle_start = HAL_GetTick();
 		/* Configuration command read loop */
 		user_configuration();
-
-
 
 		/* Set Motor Speed Profile and torque current */
 		BSP_MotorControl_SoftStop(0);
@@ -668,22 +703,50 @@ int main(void) {
 
 		/*
 		 * Configure Primary and Secondary PID controller data structures
-		 * Scale by STEPPER_READ_POSITION_STEPS_PER_DEGREE to convert gains from deg/step to steps/step
+		 * Scale by CONTROLLER_GAIN_SCALE set to default value of unity
 		 */
 
 		pid_filter->integrator_windup_limit = windup;
 		pid_filter->warn = 0;
-		pid_filter->p_gain = proportional * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-		pid_filter->i_gain = integral * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-		pid_filter->d_gain = derivative * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		pid_filter->p_gain = proportional * CONTROLLER_GAIN_SCALE;
+		pid_filter->i_gain = integral * CONTROLLER_GAIN_SCALE;
+		pid_filter->d_gain = derivative * CONTROLLER_GAIN_SCALE;
 
 		rotor_pid->integrator_windup_limit = rotor_windup;
 		rotor_pid->warn = 0;
-		rotor_pid->p_gain = rotor_p_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-		rotor_pid->i_gain = rotor_i_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-		rotor_pid->d_gain = rotor_d_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		rotor_pid->p_gain = rotor_p_gain * CONTROLLER_GAIN_SCALE;
+		rotor_pid->i_gain = rotor_i_gain * CONTROLLER_GAIN_SCALE;
+		rotor_pid->d_gain = rotor_d_gain * CONTROLLER_GAIN_SCALE;
 
-		integral_compensator_gain = integral_compensator_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		integral_compensator_gain = integral_compensator_gain * CONTROLLER_GAIN_SCALE;
+
+		/*
+		 * Coefficients for difference equation computation of rotor plant design transfer function
+		 *
+		 * Note that amplification by (1 + 1E-7) applied to recursive feedback coefficients to
+		 * reduce drift due to numerical error in computation without affecting transfer function
+		 */
+
+		if (rotor_damping_coefficient != 0 || rotor_natural_frequency != 0){
+		Wn2 = rotor_natural_frequency * rotor_natural_frequency;
+		rotor_plant_gain = rotor_plant_gain * Wn2;
+		ao = ((2.0F/0.00200F)*(2.0F/0.00200F) + (2.0F/0.00200F)*2.0F*rotor_damping_coefficient*rotor_natural_frequency
+				+ rotor_natural_frequency*rotor_natural_frequency);
+		c0 = ((2.0F/0.00200F)*(2.0F/0.00200F)/ao);
+		c1 = -2.0F * c0;
+		c2 = c0;
+		c3 = -(2.0F*rotor_natural_frequency*rotor_natural_frequency - 2.0F*(2.0F/0.00200F)*(2.0F/0.00200F))/ao;
+		c4 = -((2.0F/0.00200F)*(2.0F/0.00200F) - (2.0F/0.00200F)*2.0F*rotor_damping_coefficient*rotor_natural_frequency
+				+ rotor_natural_frequency*rotor_natural_frequency)/ao;
+		}
+
+
+		/* Optional display coefficients for rotor plant design transfer function
+		sprintf(tmp_string,
+				"\n\ra0 %0.4f c0 %0.4f c1 %0.4f c2 %0.4f c3 %0.4f c4 %0.4f\n\r", ao, c0, c1, c2, c3, c4);
+		HAL_UART_Transmit(&huart2, (uint8_t*) tmp_string,
+				strlen(tmp_string), HAL_MAX_DELAY);
+		*/
 
 		/*
 		 * Initiate start of Control System
@@ -856,6 +919,7 @@ int main(void) {
 		 */
 
 		*current_error_steps = 0;
+		*current_error_rotor_steps = 0;
 
 		/* Initialize Pendulum PID control state */
 		pid_filter_control_execute(pid_filter, current_error_steps, sample_period,
@@ -865,6 +929,7 @@ int main(void) {
 		*current_error_rotor_steps = 0;
 		pid_filter_control_execute(rotor_pid, current_error_rotor_steps,
 				sample_period_rotor, deriv_lp_corner_f_rotor);
+
 
 
 		/* Initialize control system variables */
@@ -888,7 +953,6 @@ int main(void) {
 		tick_cycle_start = HAL_GetTick();
 		tick_cycle_previous = tick_cycle_start;
 		tick_cycle_current =  tick_cycle_start;
-		// tick_cycle_target = (uint64_t) tick_cycle_start << 10;
 		chirp_cycle = 0;
 		chirp_dwell_cycle = 0;
 		pendulum_position_command_steps = 0;
@@ -900,18 +964,25 @@ int main(void) {
 		adaptive_state = 4;
 		rotor_control_target_steps_prev = 0;
 		rotor_position_command_steps_prev = 0;
+		rotor_position_command_steps_pf_prev = 0;
 		enable_high_speed_sampling = ENABLE_HIGH_SPEED_SAMPLING_MODE;
 		slope_prev = 0;
 		rotor_track_comb_command = 0;
 		noise_rej_signal_prev = 0;
 		noise_rej_signal_filter_prev = 0;
 		full_sysid_start_index = -1;
+		current_cpu_cycle = 0;
+
 
 		/* Clear read buffer */
 		for (k = 0; k < SERIAL_MSG_MAXLEN; k++) {
 			Msg.Data[k] = 0;
 		}
 		__HAL_DMA_RESET_HANDLE_STATE(&hdma_usart2_rx);
+
+
+
+
 
 		/*
 		 * *************************************************************************************************
@@ -994,14 +1065,6 @@ int main(void) {
 				break;
 			}
 
-			// TODO Implement accurate cycle timing in next release
-			// // Delay to maintain sample rate
-			// tick_cycle_target += (uint32_t) (T_SAMPLE * 1000 * (1<<10)); // Give tick_cycle_target precision similar to microseconds
-			// int cycle_delay = (int) (tick_cycle_target >> 10) - HAL_GetTick();
-			// if (cycle_delay >= 1) {
-			// 	HAL_Delay(cycle_delay);
-			// }
-
 			/*
 			 * *************************************************************************************************
 			 *
@@ -1009,6 +1072,14 @@ int main(void) {
 			 *
 			 * *************************************************************************************************
 			 */
+
+			/*
+			 * Reset and clear integrator error during initial start of controllers
+			 */
+			if (i < 100){
+				pid_filter->i_error = 0;
+				rotor_pid->i_error = 0;
+			}
 
 			/*
 			 * Acquire encoder position and correct for initial angle value of encoder measured at
@@ -1050,7 +1121,7 @@ int main(void) {
 
 			/* Detect rotor position excursion exceeding limits and exit */
 
-			if (rotor_position_steps
+		      if (rotor_position_steps
 					> (ROTOR_POSITION_POSITIVE_LIMIT
 							* STEPPER_READ_POSITION_STEPS_PER_DEGREE)) {
 				sprintf(msg, "Error Exit Motor Position Exceeded: %i\r\n",
@@ -1060,7 +1131,7 @@ int main(void) {
 				break;
 			}
 
-			if (rotor_position_steps
+		      if (rotor_position_steps
 					< (ROTOR_POSITION_NEGATIVE_LIMIT
 							* STEPPER_READ_POSITION_STEPS_PER_DEGREE)) {
 				sprintf(msg, "Error Exit Motor Position Exceeded: %i\r\n",
@@ -1095,23 +1166,30 @@ int main(void) {
 			if (enable_disturbance_rejection_step == 1){
 				rotor_position_diff = rotor_position_filter_steps;
 			}
-			rotor_position_diff_filter_prev = rotor_position_diff_filter;
-			rotor_position_diff_filter =
-					(float) (rotor_position_diff * iir_LT_0)
-					+ rotor_position_diff_prev * iir_LT_1
-					- rotor_position_diff_filter_prev * iir_LT_2;
+
+
 
 			/* Apply slope correction */
-			if (ENABLE_ENCODER_ANGLE_SLOPE_CORRECTION == 1 ) {
+			if (ENABLE_ENCODER_ANGLE_SLOPE_CORRECTION == 1 && enable_state_feedback == 0) {
+				rotor_position_diff_filter =
+						(float) (rotor_position_diff * iir_LT_0)
+						+ rotor_position_diff_prev * iir_LT_1
+						- rotor_position_diff_filter_prev * iir_LT_2;
 				if ((i < ENCODER_ANGLE_SLOPE_CORRECTION_CYCLE_LIMIT) || (ENCODER_ANGLE_SLOPE_CORRECTION_CYCLE_LIMIT == 0)) {
 					encoder_angle_slope_corr_steps = rotor_position_diff_filter / ENCODER_ANGLE_SLOPE_CORRECTION_SCALE;
 				}
 			}
 
+
+			rotor_position_diff_filter_prev = rotor_position_diff_filter;
+
+
+
 			/*
 			 *  Compute current_error_steps input for Primary Controller
 			 *
-			 *  current_error_steps is sum of encoder angle error compensation and encoder position in terms of stepper motor steps
+			 *  current_error_steps is sum of encoder angle error compensation and encoder position
+			 *  in terms of stepper motor steps
 			 *
 			 *  An Encoder offset may be introduced.  The Encoder offset may remain at all times if
 			 *  ENCODER_OFFSET_DELAY == 0 or terminate at a time (in ticks) of ENCODER_OFFSET_DELAY
@@ -1186,34 +1264,37 @@ int main(void) {
 				}
 			}
 
-			/*  Create rotor track "comb" signal */
-			if (enable_rotor_tracking_comb_signal > 0) {
 
-				chirp_time = (float)((i - 1)/ROTOR_TRACK_COMB_SIGNAL_SAMPLE_RATE);
+			/*  Create rotor track "comb" signal */
+			if (enable_rotor_tracking_comb_signal > 0 && i > 1000) {
+
+				chirp_time = ((float)(i - 1))/500.0;
 				rotor_track_comb_signal_frequency = 0.01;
-				rotor_track_comb_command = ((float)(rotor_track_comb_amplitude))*sin(2.0*3.14159*rotor_track_comb_signal_frequency*chirp_time);
-				rotor_track_comb_signal_frequency = 0.0178;
-				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(2.0*3.14159*rotor_track_comb_signal_frequency*chirp_time);
-				rotor_track_comb_signal_frequency = 0.0316;
-				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(2.0*3.14159*rotor_track_comb_signal_frequency*chirp_time);
-				rotor_track_comb_signal_frequency = 0.0562;
-				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(2.0*3.14159*rotor_track_comb_signal_frequency*chirp_time);
+				rotor_track_comb_command = ((float)(rotor_track_comb_amplitude))*sin(rotor_track_comb_signal_frequency*chirp_time);
+				rotor_track_comb_signal_frequency = 0.017783;
+				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(rotor_track_comb_signal_frequency*chirp_time);
+				rotor_track_comb_signal_frequency = 0.031623;
+				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(rotor_track_comb_signal_frequency*chirp_time);
+				rotor_track_comb_signal_frequency = 0.056234;
+				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(rotor_track_comb_signal_frequency*chirp_time);
 				rotor_track_comb_signal_frequency = 0.1;
-				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(2.0*3.14159*rotor_track_comb_signal_frequency*chirp_time);
-				rotor_track_comb_signal_frequency = 0.178;
-				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(2.0*3.14159*rotor_track_comb_signal_frequency*chirp_time);
-				rotor_track_comb_signal_frequency = 0.316;
-				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(2.0*3.14159*rotor_track_comb_signal_frequency*chirp_time);
-				rotor_track_comb_signal_frequency = 0.562;
-				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(2.0*3.14159*rotor_track_comb_signal_frequency*chirp_time);
-				rotor_track_comb_signal_frequency = 1.00;
-				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(2.0*3.14159*rotor_track_comb_signal_frequency*chirp_time);
-				rotor_track_comb_signal_frequency = 1.78;
-				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(2.0*3.14159*rotor_track_comb_signal_frequency*chirp_time);
-				rotor_track_comb_signal_frequency = 3.16;
-				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(2.0*3.14159*rotor_track_comb_signal_frequency*chirp_time);
-				rotor_track_comb_signal_frequency = 5.62;
-				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(2.0*3.14159*rotor_track_comb_signal_frequency*chirp_time);
+				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(rotor_track_comb_signal_frequency*chirp_time);
+				rotor_track_comb_signal_frequency = 0.17783;
+				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(rotor_track_comb_signal_frequency*chirp_time);
+				rotor_track_comb_signal_frequency = 0.31623;
+				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(rotor_track_comb_signal_frequency*chirp_time);
+				rotor_track_comb_signal_frequency = 0.56234;
+				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(rotor_track_comb_signal_frequency*chirp_time);
+				rotor_track_comb_signal_frequency = 1.0;
+				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(rotor_track_comb_signal_frequency*chirp_time);
+				rotor_track_comb_signal_frequency = 1.7783;
+				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(rotor_track_comb_signal_frequency*chirp_time);
+				rotor_track_comb_signal_frequency = 3.1623;
+				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(rotor_track_comb_signal_frequency*chirp_time);
+				rotor_track_comb_signal_frequency = 5.6234;
+				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(rotor_track_comb_signal_frequency*chirp_time);
+				rotor_track_comb_signal_frequency = 10;
+				rotor_track_comb_command = rotor_track_comb_command + ((float)(rotor_track_comb_amplitude))*sin(rotor_track_comb_signal_frequency*chirp_time);
 			}
 
 			if (enable_rotor_chirp == 0 && enable_mod_sin_rotor_tracking == 0
@@ -1243,18 +1324,20 @@ int main(void) {
 					rotor_sine_drive_mod = sin(0 + ((i - MOD_SIN_START_CYCLES) /MOD_SIN_SAMPLE_RATE) * (mod_sin_carrier_frequency * 6.2832));
 					rotor_sine_drive = rotor_control_sin_amplitude * rotor_sine_drive_mod * rotor_mod_control;
 				}
-				rotor_position_command_steps = rotor_sine_drive;
 
+                if ( abs(rotor_sine_drive_mod*MOD_SIN_AMPLITUDE) < 2 && disable_mod_sin_rotor_tracking == 1 && sine_drive_transition == 1){
+                        rotor_mod_control = 0.0;
+                        sine_drive_transition = 0;
+                }
+                if ( abs(rotor_sine_drive_mod*MOD_SIN_AMPLITUDE) < 2 && disable_mod_sin_rotor_tracking == 0 && sine_drive_transition == 1){
+                        rotor_mod_control = 1.0;
+                        sine_drive_transition = 0;
+                }
 
-				/* Detect transition between sine drive enable and disable */
-				if ( abs(rotor_sine_drive_mod*MOD_SIN_AMPLITUDE) < 2 && disable_mod_sin_rotor_tracking == 1 && sine_drive_transition == 1){
-					rotor_mod_control = 0.0;
-					sine_drive_transition = 0;
+				if (enable_rotor_position_step_response_cycle == 0){
+					rotor_position_command_steps = rotor_sine_drive;
 				}
-				if ( abs(rotor_sine_drive_mod*MOD_SIN_AMPLITUDE) < 2 && disable_mod_sin_rotor_tracking == 0 && sine_drive_transition == 1){
-					rotor_mod_control = 1.0;
-					sine_drive_transition = 0;
-				}
+
 			}
 
 			/*  Create rotor angle reference tracking impulse signal */
@@ -1301,15 +1384,40 @@ int main(void) {
 					chirp_cycle = 0;
 				}
 			}
-			if (enable_rotor_position_step_response_cycle == 1) {
+			if (enable_rotor_position_step_response_cycle == 1 && enable_rotor_tracking_comb_signal == 0) {
 				if (STEP_RESPONSE_AMP_LIMIT_ENABLE == 1 && abs(rotor_sine_drive) > STEP_RESPONSE_AMP_LIMIT){
 					chirp_cycle = chirp_cycle + 1;
 				} else {
-					rotor_position_command_steps = rotor_sine_drive + (float) ((rotor_position_step_polarity)
+					if (enable_mod_sin_rotor_tracking == 1){
+						rotor_position_command_steps = rotor_sine_drive + (float) ((rotor_position_step_polarity)
 							* ROTOR_POSITION_STEP_RESPONSE_CYCLE_AMPLITUDE
 							* STEPPER_READ_POSITION_STEPS_PER_DEGREE);
+					}
+					if (enable_mod_sin_rotor_tracking == 0){
+						rotor_position_command_steps_pf = (float) ((rotor_position_step_polarity)
+							* ROTOR_POSITION_STEP_RESPONSE_CYCLE_AMPLITUDE
+							* STEPPER_READ_POSITION_STEPS_PER_DEGREE);
+					}
 					chirp_cycle = chirp_cycle + 1;
 				}
+			}
+
+			/*
+			 * Rotor tracking reference, rotor_position_command_steps, is low pass filtered to prevent
+			 * aliasing of measurement during operation of Real Time Workbench sampling that occurs at
+			 * 50 Hz (in support of connected computing platform bandwidth limitations).  This filter
+			 * application is not applied during selection of high speed sampling at 500 Hz.
+			 */
+
+			if (enable_rotor_position_step_response_cycle == 1 && enable_high_speed_sampling == 0 && enable_mod_sin_rotor_tracking == 0 && enable_rotor_tracking_comb_signal == 0){
+				rotor_position_command_steps = rotor_position_command_steps_pf * iir_0
+						+ rotor_position_command_steps_pf_prev * iir_1
+						- rotor_position_command_steps_prev * iir_2;
+				rotor_position_command_steps_pf_prev = rotor_position_command_steps_pf;
+ 			}
+
+			if (enable_high_speed_sampling == 1 && enable_rotor_tracking_comb_signal == 0){
+			rotor_position_command_steps = rotor_position_command_steps_pf;
 			}
 
 			/*
@@ -1332,10 +1440,10 @@ int main(void) {
 				if (enable_state_feedback == 0 && enable_disturbance_rejection_step == 1 && enable_sensitivity_fnc_step == 0 && enable_noise_rejection_step == 0){
 					*current_error_rotor_steps = rotor_position_filter_steps;
 				}
-
 				if (enable_state_feedback == 0 && enable_disturbance_rejection_step == 0 && enable_sensitivity_fnc_step == 0 && enable_noise_rejection_step == 1){
 					*current_error_rotor_steps = rotor_position_filter_steps + rotor_position_command_steps;
 				}
+
 				if (enable_state_feedback == 0 && enable_disturbance_rejection_step == 0 && enable_sensitivity_fnc_step == 1 && enable_noise_rejection_step == 0){
 					*current_error_rotor_steps = rotor_position_filter_steps - rotor_position_command_steps;
 				}
@@ -1364,9 +1472,9 @@ int main(void) {
 
 				if (enable_state_feedback == 1 && integral_compensator_gain != 0){
 					/*
-					 * If integral compensator is included, state feedback plant input equals difference between
+					 * If integral action is included, state feedback plant input equals
 					 * the time integral of difference between reference tracking signal and rotor angle,
-					 * current_error_rotor_integral, summed with the controller output, rotor_control_target_steps.
+					 * current_error_rotor_integral.  This is summed with the controller output, rotor_control_target_steps.
 					 * The integral_compensator_gain as input by user includes multiplicative scale factor matching
 					 * scaling of controller gain values.
 					 */
@@ -1377,19 +1485,31 @@ int main(void) {
 				if (enable_state_feedback == 1 && integral_compensator_gain == 0){
 					/*
 					 * If integral compensator is not included, full state feedback plant input equals difference
-					 * between control output and reference tracking signal
+					 * between control output and reference tracking signal with scale factor matching
+					 * scaling of controller gain values.
+					 *
+					 * If Plant Design system is applied, the effects of small numerical error in transfer function
+					 * computation is compensated for by removal of average offset error.
+					 *
 					 */
+
 					rotor_control_target_steps = rotor_control_target_steps - rotor_position_command_steps;
+
 				}
 
+
 				/*
-				 * Load Disturbance Sensitivity Function signal introduction with scale factor matching
-				 * scaling of controller gain values.
+				 * Load Disturbance Sensitivity Function signal introduction with scale factor applied to increase
+				 * amplitude of Load Disturbance signal to enhance signal to noise in measurement.  This scale factor
+				 * then must be applied after data acquisition to compute proper Load Disturbance Sensitivity Function.
+				 * Note that Load Disturbance Sensitivity Function value is typically less than -20 dB
+				 *
 				 */
 				if (enable_disturbance_rejection_step == 1){
-					rotor_control_target_steps = rotor_control_target_steps - rotor_position_command_steps * LOAD_DISTURBANCE_SENSITIVITY_SCALE;
+					rotor_control_target_steps = rotor_control_target_steps + rotor_position_command_steps * LOAD_DISTURBANCE_SENSITIVITY_SCALE;
 				}
 			}
+
 
 			if (full_sysid_start_index != -1 && i >= full_sysid_start_index) {
 				float total_acc = 0;
@@ -1400,7 +1520,28 @@ int main(void) {
 					total_acc += wave_value;
 					w *= full_sysid_freq_log_step;
 				}
-				rotor_control_target_steps = lroundf((full_sysid_max_vel_amplitude_deg_per_s/full_sysid_num_freqs) * total_acc * STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE);
+				rotor_control_target_steps = ((full_sysid_max_vel_amplitude_deg_per_s/full_sysid_num_freqs) * total_acc * STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE);
+			}
+
+
+			/*
+			 * Plant transfer function design based on two stage first order high pass IIR
+			 * filter structures applied to rotor_control_target_steps
+			 */
+
+
+			if (enable_rotor_plant_design == 1){
+
+				if (rotor_damping_coefficient != 0 || rotor_natural_frequency != 0){
+
+					rotor_control_target_steps_filter_2 = c0*rotor_control_target_steps + c1*rotor_control_target_steps_prev
+							+ c2*rotor_control_target_steps_prev_prev + c3*rotor_control_target_steps_filter_prev_2
+							+ c4*rotor_control_target_steps_filter_prev_prev_2;
+
+					rotor_control_target_steps_prev_prev = rotor_control_target_steps_prev;
+					rotor_control_target_steps_filter_prev_prev_2 = rotor_control_target_steps_filter_prev_2;
+					rotor_control_target_steps_filter_prev_2 = rotor_control_target_steps_filter_2;
+				}
 			}
 
 			/*
@@ -1411,8 +1552,20 @@ int main(void) {
 			rotor_control_target_steps_prev = rotor_control_target_steps;
 			rotor_position_command_steps_prev = rotor_position_command_steps;
 
+
 			if (ACCEL_CONTROL == 1) {
-				apply_acceleration(rotor_control_target_steps, &target_velocity_prescaled, SAMPLE_FREQUENCY);
+
+				if (enable_rotor_plant_design == 1){
+					rotor_control_target_steps_filter_2 = rotor_plant_gain*rotor_control_target_steps_filter_2;
+					apply_acceleration(&rotor_control_target_steps_filter_2, &target_velocity_prescaled, SAMPLE_FREQUENCY);
+				}
+				if ((enable_rotor_plant_design == 1 && rotor_damping_coefficient == 0.0F && rotor_natural_frequency == 0.0F) || enable_rotor_plant_gain_design == 1){
+					rotor_control_target_steps_gain = rotor_plant_gain * rotor_control_target_steps;
+					apply_acceleration(&rotor_control_target_steps_gain, &target_velocity_prescaled, SAMPLE_FREQUENCY);
+				}
+				if (enable_rotor_plant_design == 0 && enable_rotor_plant_gain_design == 0){
+					apply_acceleration(&rotor_control_target_steps, &target_velocity_prescaled, SAMPLE_FREQUENCY);
+				}
 			} else {
 				BSP_MotorControl_GoTo(0, rotor_control_target_steps/2);
 			}
@@ -1426,7 +1579,7 @@ int main(void) {
 			 */
 
 			/* Introduce pendulum displacement disturbance */
-			int initial_rotor_position;
+
 			if (ENABLE_PENDULUM_DISPLACEMENT_DISTURBANCE == 1 && i % PENDULUM_DISPLACEMENT_DISTURBANCE_CYCLE == 0 && i >= PENDULUM_DISPLACEMENT_DISTURBANCE_CYCLE){
 				ret = rotor_position_read(&initial_rotor_position);
 				BSP_MotorControl_GoTo(0, initial_rotor_position + 30);
@@ -1446,31 +1599,36 @@ int main(void) {
 			tick_cycle_previous = tick_cycle_current;
 			tick_cycle_current = tick;
 
+
+
 			/* High speed sampling mode data reporting */
 			if (enable_high_speed_sampling == 1 && enable_rotor_chirp == 1 && enable_rotor_tracking_comb_signal == 0 && ACCEL_CONTROL_DATA == 0){
-				sprintf(msg, "%i\t%i\t%i\t%i\t%i\t%i\r\n", cycle_period_sum, (int)(chirp_cycle == 0),
-						encoder_position, display_parameter, rotor_control_target_steps, (int)(100*rotor_position_command_steps));
+				sprintf(msg, "%i\t%i\t%i\t%i\t%i\t%i\r\n", current_cpu_cycle_delay_relative_int_report, (int)(chirp_cycle == 0),
+						encoder_position, display_parameter, (int)(round(rotor_control_target_steps)), (int)(round(100*rotor_position_command_steps)));
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 			}
 
 			/* High speed sampling mode data reporting without rotor chirp signal and with comb signal */
 			if (enable_high_speed_sampling == 1 && enable_rotor_chirp == 0 && enable_rotor_tracking_comb_signal == 1 && ACCEL_CONTROL_DATA == 0){
-				sprintf(msg, "%i\t%i\t%i\t%i\t%i\r\n", cycle_period_sum,
-						encoder_position, display_parameter, rotor_control_target_steps,(int)(100*rotor_position_command_steps));
+				sprintf(msg, "%i\t%i\t%i\t%i\t%i\r\n", current_cpu_cycle_delay_relative_int_report,
+						encoder_position, display_parameter, (int)(round(rotor_control_target_steps)), (int)(round(100*rotor_position_command_steps)));
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 			}
 
 			/* High speed sampling mode data reporting without rotor chirp signal and without comb signal */
+			/* Time reported is equal to ((cycle time - 2000)microseconds/10) */
 			if (enable_high_speed_sampling == 1 && enable_rotor_chirp == 0 && enable_rotor_tracking_comb_signal == 0 && ACCEL_CONTROL_DATA == 0){
 				if (enable_pendulum_position_impulse_response_cycle == 1) {
 					reference_tracking_command = pendulum_position_command_steps;
 				} else {
 					reference_tracking_command = rotor_position_command_steps;
 				}
-				sprintf(msg, "%i\t%i\t%i\t%i\t%i\r\n", cycle_period_sum,
-						encoder_position,display_parameter, rotor_control_target_steps,(int)(reference_tracking_command));
+				sprintf(msg, "%i\t%i\t%i\t%i\t%i\r\n", cycle_period_sum - 200,
+						encoder_position, display_parameter,
+						(int)(round(rotor_control_target_steps)),(int)(reference_tracking_command));
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 			}
+
 			/* High speed sampling mode data reporting for 800 Hz mode */
 			if (ENABLE_800Hz_MODE == 1 && enable_high_speed_sampling == 1 && enable_rotor_chirp == 0 && ACCEL_CONTROL_DATA == 1){
 				sprintf(msg, "%i\t%lu\r\n", rotor_position_steps, current_pwm_period);
@@ -1479,75 +1637,101 @@ int main(void) {
 			/* High speed sampling mode data reporting for 500 Hz mode with acceleration contol system data */
 			if (ENABLE_800Hz_MODE == 0 && enable_high_speed_sampling == 1 && enable_rotor_chirp == 0 && ACCEL_CONTROL_DATA == 1){
 				sprintf(msg, "%i\t%i\t%i\t%lu\t%lu\t%lu\r\n",
-						rotor_position_steps, rotor_control_target_steps/10,(int)(rotor_position_command_steps),
+						rotor_position_steps, (int)(round(rotor_control_target_steps/10)),(int)(rotor_position_command_steps),
 						current_pwm_period, desired_pwm_period/10000,
 						(clock_int_time/100000));
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 			}
-			/*
-			 * Normal mode data reporting provides data output each 10th cycle
-			 * The 1 tick (1 millisecond) loop delay is removed during this report to compensate
-			 * for delay introduced by data transport line over 115200 baud
-			 */
 
-			if (i % 10 != 0 && enable_high_speed_sampling == 0){
-				HAL_Delay(CYCLE_DELAY);
-			}
+
 			/* Select display parameter corresponding to requested selection of Sensitivity Functions */
 			if (enable_disturbance_rejection_step == 1) { display_parameter = rotor_position_steps; }
-			/*
-			 * Noise Sensitivity Function signal introduction with scale factor matching scaling of controller gain values.
-			 */
-			else if (enable_noise_rejection_step == 1) { noise_rej_signal = rotor_control_target_steps/NOISE_REJECTION_SENSITIVITY_SCALE; }
+			else if (enable_noise_rejection_step == 1) { noise_rej_signal = rotor_control_target_steps; }
 			else if (enable_sensitivity_fnc_step == 1)  { display_parameter = rotor_position_command_steps - rotor_position_steps; }
 			else { display_parameter = rotor_position_steps; }
 
-			if (enable_noise_rejection_step == 1 && enable_high_speed_sampling == 0){
-				/*
-				 * Apply antialiasing filter for noise rejection signal when reduced reporting rate applies
-				 * When high speed sampling is disabled, reporting rate is 50 Hz.  Noise rejection signal filter
-				 * corner frequency is 25 Hz.
-				 */
-				noise_rej_signal_filter =  noise_rej_signal*iir_0_nr + noise_rej_signal_prev*iir_1_nr - noise_rej_signal_filter_prev*iir_2_nr;
-				noise_rej_signal_filter_prev = noise_rej_signal_filter;
-				noise_rej_signal_prev = noise_rej_signal;
-				display_parameter = noise_rej_signal_filter;
-			}
 
-			if (enable_noise_rejection_step == 1 && enable_high_speed_sampling == 1){
-				display_parameter = noise_rej_signal;
-			}
+            if (enable_noise_rejection_step == 1){
+                    display_parameter = noise_rej_signal;
+            }
 
-			if (i % 10 == 0 && enable_high_speed_sampling == 0){
-				report_mode++;
-				/* Provide report each 10th control cycle */
-				if (report_mode != 0){
-					sprintf(msg, "%i\t%i\t%i\t%i\t%i\t%.1f\t%i\t%i\t%i\r\n", cycle_period_sum,
-							(int) (tick_cycle_current - tick_cycle_previous),
-							encoder_position, display_parameter, (int)(pid_filter->control_output)/10,
-							rotor_position_command_steps, chirp_cycle, rotor_control_target_steps/10,
-							(int)(rotor_pid->control_output)/10);
-				}
+            /*
+             * Normal mode data reporting provides data output each 10th cycle
+             * Time reported is the average of ((cycle periods - 200) microseconds)/10
+             */
 
-				/* Provide report each 200th cycle of system parameters */
-				if (report_mode == 20){
-					sprintf(msg, "%i\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%i\t%i\r\n", 0,
-							pid_filter->p_gain, pid_filter->i_gain, pid_filter->d_gain,
+            if (enable_high_speed_sampling == 0){
+
+            	/*
+            	 * Provide report each 10th control cycle
+            	 * Control parameters scaled by 100 to reduce communication bandwidth
+            	 *
+            	 */
+            	if (i % 1000 != 0){
+            		sprintf(msg, "%i\t%i\t%i\t%i\t%i\t%i\t%.1f\t%i\t%i\r\n", (int)2, cycle_period_sum - 200,
+            				current_cpu_cycle_delay_relative_int_report,
+							encoder_position, display_parameter, (int)(pid_filter->i_term)/100,
+							rotor_position_command_steps, (int)(round(rotor_control_target_steps)),
+							(int)(rotor_pid->control_output)/100);
+            	}
+
+            	/* Provide reports each 1000th cycle of system parameters
+            	 * Speed parameters scaled by 10 to reduce communication bandwidth
+            	 */
+
+            	if (report_mode == 1000){
+            		sprintf(msg, "%i\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%i\t%i\r\n", (int)0,
+            				pid_filter->p_gain, pid_filter->i_gain, pid_filter->d_gain,
 							rotor_pid->p_gain, rotor_pid->i_gain, rotor_pid->d_gain,
-							max_speed, min_speed);
-				}
-
-				/* Provide report each 200th cycle of system parameters */
-				if (report_mode == 40){
-					sprintf(msg, "%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\r\n", 1,
-							(int)torq_current_val, max_accel, max_decel, enable_disturbance_rejection_step,
+							max_speed/10, min_speed/10);
+            	}
+            	if (report_mode == 2000){
+            		sprintf(msg, "%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\r\n", (int)1,
+            				(int)torq_current_val, max_accel, max_decel, enable_disturbance_rejection_step,
 							enable_noise_rejection_step, enable_rotor_position_step_response_cycle,
 							(int)(adjust_increment*10), enable_sensitivity_fnc_step);
-							report_mode = 0;
-				}
-				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+            		report_mode = 0;
+            	}
+            	report_mode = report_mode + 1;
+
+            	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+            }
+
+			/*
+			 * Adjust cycle delay to match 2000 microsecond cycle. Adjustment starts after 100 cycles
+			 */
+
+			current_cpu_cycle_delay_relative = 1998 - (((DWT->CYCCNT) - current_cpu_cycle)/84L);
+			if (current_cpu_cycle_delay_relative < 65536){
+			current_cpu_cycle_delay_relative_int = (int)(current_cpu_cycle_delay_relative);
+			} else {
+				current_cpu_cycle_delay_relative_int = (int)(current_cpu_cycle_delay_relative - 4294967296);
 			}
 
+			if (i < 10){
+				HAL_Delay(CYCLE_DELAY);
+			}
+
+			/* Insert delay adjustment */
+			if (i >= 10) {
+				if ( current_cpu_cycle_delay_relative_int > 0 ){
+					DWT_Delay_us( current_cpu_cycle_delay_relative_int );
+				}
+			}
+			/* Compute value of relative delay after insertion of delay adjust */
+			if(enable_high_speed_sampling == 0){
+			current_cpu_cycle_delay_relative_report = 2000 - (((DWT->CYCCNT) - current_cpu_cycle)/84L);
+			}
+			if(enable_high_speed_sampling == 1){
+			current_cpu_cycle_delay_relative_report = 2000 - (((DWT->CYCCNT) - current_cpu_cycle)/84L);
+			}
+						if (current_cpu_cycle_delay_relative_report < 65536){
+						current_cpu_cycle_delay_relative_int_report = (int)(current_cpu_cycle_delay_relative_report);
+						} else {
+							current_cpu_cycle_delay_relative_int_report = (int)(current_cpu_cycle_delay_relative_report - 4294967296);
+						}
+			/* Record current cpu cycle for delay computation in next loop execution */
+			current_cpu_cycle = DWT->CYCCNT;
 		}
 
 		/*
@@ -1671,7 +1855,7 @@ static void MX_USART2_UART_Init(void) {
 			;
 
 	huart2.Instance = USART2;
-	huart2.Init.BaudRate = 115200;
+	huart2.Init.BaudRate = SAMPLE_BAUD_RATE;
 	huart2.Init.WordLength = UART_WORDLENGTH_8B;
 	huart2.Init.StopBits = UART_STOPBITS_1;
 	huart2.Init.Parity = UART_PARITY_NONE;

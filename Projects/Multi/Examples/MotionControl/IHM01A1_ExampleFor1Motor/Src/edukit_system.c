@@ -114,7 +114,7 @@ void pid_filter_control_execute(pid_filter_control_parameters * pid_filter,
 	pid_filter->i_error += (*current_error * (*sample_period));
 
 	/*
-	 * Limit integrator error
+	 * Optional Limit integrator error
 	 *
 	 * Provide warn state in pid->warn
 	 *
@@ -122,14 +122,18 @@ void pid_filter_control_execute(pid_filter_control_parameters * pid_filter,
 	 *
 	 */
 
-	pid_filter->warn = 0;
-	if (pid_filter->i_error < -(pid_filter->integrator_windup_limit)) {
-		pid_filter->i_error = -(pid_filter->integrator_windup_limit);
-		pid_filter->warn = -1;
-	} else if (pid_filter->i_error > pid_filter->integrator_windup_limit) {
-		pid_filter->i_error = pid_filter->integrator_windup_limit;
-		pid_filter->warn = 1;
+	if (ENABLE_PID_INTEGRATOR_LIMIT == 1){
+		pid_filter->warn = 0;
+		if (pid_filter->i_error < -(pid_filter->integrator_windup_limit)) {
+			pid_filter->i_error = -(pid_filter->integrator_windup_limit);
+			pid_filter->warn = -1;
+		} else if (pid_filter->i_error > pid_filter->integrator_windup_limit) {
+			pid_filter->i_error = pid_filter->integrator_windup_limit;
+			pid_filter->warn = 1;
+		}
 	}
+
+
 	/*
 	 * Compute derivative, proportional, and integral terms
 	 */
@@ -318,12 +322,12 @@ void assign_mode_1(pid_filter_control_parameters * pid_filter,
 	rotor_p_gain = SECONDARY_PROPORTIONAL_MODE_1;
 	rotor_i_gain = SECONDARY_INTEGRAL_MODE_1;
 	rotor_d_gain = SECONDARY_DERIVATIVE_MODE_1;
-	pid_filter->p_gain = proportional * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-	pid_filter->i_gain = integral * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-	pid_filter->d_gain = derivative * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-	rotor_pid->p_gain = rotor_p_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-	rotor_pid->i_gain = rotor_i_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-	rotor_pid->d_gain = rotor_d_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	pid_filter->p_gain = proportional;
+	pid_filter->i_gain = integral;
+	pid_filter->d_gain = derivative;
+	rotor_pid->p_gain = rotor_p_gain;
+	rotor_pid->i_gain = rotor_i_gain;
+	rotor_pid->d_gain = rotor_d_gain;
 	torq_current_val = 800;
 	L6474_SetAnalogValue(0, L6474_TVAL, torq_current_val);
 }
@@ -337,12 +341,12 @@ void assign_mode_2(pid_filter_control_parameters * pid_filter,
 	rotor_p_gain = SECONDARY_PROPORTIONAL_MODE_2;
 	rotor_i_gain = SECONDARY_INTEGRAL_MODE_2;
 	rotor_d_gain = SECONDARY_DERIVATIVE_MODE_2;
-	pid_filter->p_gain = proportional * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-	pid_filter->i_gain = integral * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-	pid_filter->d_gain = derivative * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-	rotor_pid->p_gain = rotor_p_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-	rotor_pid->i_gain = rotor_i_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-	rotor_pid->d_gain = rotor_d_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	pid_filter->p_gain = proportional;
+	pid_filter->i_gain = integral;
+	pid_filter->d_gain = derivative;
+	rotor_pid->p_gain = rotor_p_gain;
+	rotor_pid->i_gain = rotor_i_gain;
+	rotor_pid->d_gain = rotor_d_gain;
 	torq_current_val = 800;
 	L6474_SetAnalogValue(0, L6474_TVAL, torq_current_val);
 }
@@ -356,12 +360,12 @@ void assign_mode_3(pid_filter_control_parameters * pid_filter,
 	rotor_p_gain = SECONDARY_PROPORTIONAL_MODE_3;
 	rotor_i_gain = SECONDARY_INTEGRAL_MODE_3;
 	rotor_d_gain = SECONDARY_DERIVATIVE_MODE_3;
-	pid_filter->p_gain = proportional * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-	pid_filter->i_gain = integral * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-	pid_filter->d_gain = derivative * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-	rotor_pid->p_gain = rotor_p_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-	rotor_pid->i_gain = rotor_i_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-	rotor_pid->d_gain = rotor_d_gain * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+	pid_filter->p_gain = proportional;
+	pid_filter->i_gain = integral;
+	pid_filter->d_gain = derivative;
+	rotor_pid->p_gain = rotor_p_gain;
+	rotor_pid->i_gain = rotor_i_gain;
+	rotor_pid->d_gain = rotor_d_gain;
 	torq_current_val = 800;
 	L6474_SetAnalogValue(0, L6474_TVAL, torq_current_val);
 }
@@ -378,45 +382,45 @@ int mode_index_identification(char * user_config_input, int config_command_contr
 		pid_filter_control_parameters * rotor_pid){
 
 	if (strcmp(user_config_input, mode_string_inc_pend_p) == 0){
-		pid_filter->p_gain = pid_filter->p_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		pid_filter->p_gain = pid_filter->p_gain + *adjust_increment;
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_dec_pend_p) == 0) {
-		pid_filter->p_gain = pid_filter->p_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		pid_filter->p_gain = pid_filter->p_gain - *adjust_increment;
 		//if (pid_filter->p_gain <= 0) { pid_filter->p_gain = 0; }
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_inc_pend_d) == 0) {
-		pid_filter->d_gain = pid_filter->d_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		pid_filter->d_gain = pid_filter->d_gain + *adjust_increment;
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_dec_pend_d) == 0) {
-		pid_filter->d_gain = pid_filter->d_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		pid_filter->d_gain = pid_filter->d_gain - *adjust_increment;
 		//if (pid_filter->d_gain <= 0) { pid_filter->d_gain = 0; }
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_inc_pend_i) == 0) {
-		pid_filter->i_gain = pid_filter->i_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		pid_filter->i_gain = pid_filter->i_gain + *adjust_increment;
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_dec_pend_i) == 0) {
-		pid_filter->i_gain = pid_filter->i_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		pid_filter->i_gain = pid_filter->i_gain - *adjust_increment;
 		//if (pid_filter->i_gain <= 0) { pid_filter->i_gain = 0; }
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_inc_rotor_p) == 0){
-		rotor_pid->p_gain = rotor_pid->p_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		rotor_pid->p_gain = rotor_pid->p_gain + *adjust_increment;
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_dec_rotor_p) == 0) {
-		rotor_pid->p_gain = rotor_pid->p_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		rotor_pid->p_gain = rotor_pid->p_gain - *adjust_increment;
 		//if (rotor_pid->p_gain <= 0) { rotor_pid->p_gain = 0; }
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_inc_rotor_d) == 0) {
-		rotor_pid->d_gain = rotor_pid->d_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		rotor_pid->d_gain = rotor_pid->d_gain + *adjust_increment;
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_dec_rotor_d) == 0) {
-		rotor_pid->d_gain = rotor_pid->d_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		rotor_pid->d_gain = rotor_pid->d_gain - *adjust_increment;
 		//if (rotor_pid->d_gain <= 0) { rotor_pid->d_gain = 0; }
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_inc_rotor_i) == 0) {
-		rotor_pid->i_gain = rotor_pid->i_gain + *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		rotor_pid->i_gain = rotor_pid->i_gain + *adjust_increment;
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_dec_rotor_i) == 0) {
-		rotor_pid->i_gain = rotor_pid->i_gain - *adjust_increment * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		rotor_pid->i_gain = rotor_pid->i_gain - *adjust_increment;
 		//if (rotor_pid->i_gain <= 0) { rotor_pid->i_gain = 0; }
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_dec_torq_c) == 0) {
@@ -509,12 +513,12 @@ int mode_index_identification(char * user_config_input, int config_command_contr
 		L6474_SetAcceleration(0, MAX_ACCEL);
 		L6474_SetMinSpeed(0, MIN_SPEED_MODE_5);
 		L6474_SetMaxSpeed(0, MAX_SPEED_MODE_5);
-		pid_filter->p_gain = PRIMARY_PROPORTIONAL_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-		pid_filter->i_gain = PRIMARY_INTEGRAL_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-		pid_filter->d_gain = PRIMARY_DERIVATIVE_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-		rotor_pid->p_gain = SECONDARY_PROPORTIONAL_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-		rotor_pid->i_gain = SECONDARY_INTEGRAL_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
-		rotor_pid->d_gain = SECONDARY_DERIVATIVE_MODE_5 * STEPPER_READ_POSITION_STEPS_PER_DEGREE * 2;
+		pid_filter->p_gain = PRIMARY_PROPORTIONAL_MODE_5;
+		pid_filter->i_gain = PRIMARY_INTEGRAL_MODE_5;
+		pid_filter->d_gain = PRIMARY_DERIVATIVE_MODE_5;
+		rotor_pid->p_gain = SECONDARY_PROPORTIONAL_MODE_5;
+		rotor_pid->i_gain = SECONDARY_INTEGRAL_MODE_5;
+		rotor_pid->d_gain = SECONDARY_DERIVATIVE_MODE_5;
 		enable_adaptive_mode = 0;
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_enable_step ) == 0 ){
@@ -566,18 +570,18 @@ int mode_index_identification(char * user_config_input, int config_command_contr
 	} else if (strcmp(user_config_input, mode_string_inc_step_size ) == 0 ){
 		step_size = step_size + 1;
 		if (step_size > 4) { step_size = 4; }
-		if (step_size == 0) { *adjust_increment = 0.5;}
-		else if (step_size == 1) { *adjust_increment = 2;}
-		else if (step_size == 2) { *adjust_increment = 10;}
+		if (step_size == 0) { *adjust_increment = 2;}
+		else if (step_size == 1) { *adjust_increment = 5;}
+		else if (step_size == 2) { *adjust_increment = 20;}
 		else if (step_size == 3) { *adjust_increment = 50;}
 		else if (step_size == 4) { *adjust_increment = 100;}
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_dec_step_size ) == 0 ){
 		step_size = step_size - 1;
 		if (step_size < 0) { step_size = 0; }
-		if (step_size == 0) { *adjust_increment = 0.5;}
-		else if (step_size == 1) { *adjust_increment = 2;}
-		else if (step_size == 2) { *adjust_increment = 10;}
+		if (step_size == 0) { *adjust_increment = 2;}
+		else if (step_size == 1) { *adjust_increment = 5;}
+		else if (step_size == 2) { *adjust_increment = 20;}
 		else if (step_size == 3) { *adjust_increment = 50;}
 		else if (step_size == 4) { *adjust_increment = 100;}
 		config_command = 1;
@@ -586,6 +590,12 @@ int mode_index_identification(char * user_config_input, int config_command_contr
 		config_command = 1;
 	} else if (strcmp(user_config_input, mode_string_disable_high_speed_sampling ) == 0 ){
 		enable_high_speed_sampling = 0;
+		config_command = 1;
+	} else if (strcmp(user_config_input, mode_string_enable_speed_prescale ) == 0 ){
+		enable_speed_prescale = 1;
+		config_command = 1;
+	} else if (strcmp(user_config_input, mode_string_disable_speed_prescale ) == 0 ){
+		enable_speed_prescale = 0;
 		config_command = 1;
 	} else {
 		mode_index_command = atoi((char*) Msg.Data);
@@ -678,12 +688,14 @@ void set_mode_strings(void){
 	sprintf(mode_string_select_mode_5, "u");
 	sprintf(mode_string_enable_high_speed_sampling, "Y");
 	sprintf(mode_string_disable_high_speed_sampling, "y");
+	sprintf(mode_string_enable_speed_prescale, ":");
+	sprintf(mode_string_disable_speed_prescale, ";");
 
 
-	mode_1 = 1;				// Enable LQR Motor Model M
-	mode_2 = 2;				// Enable LRR Motor Model H
-	mode_3 = 3;				// Enable LQR Motor Model L
-	mode_4 = 4;				// Enable Suspended Mode Motor Model M
+	mode_1 = 1;				// Enable Model 1Enable Suspended Mode Motor Model M
+	mode_2 = 2;				// Enable Suspended Mode Motor Model M
+	mode_3 = 3;				// Enable Model 2
+	mode_4 = 4;				// Enable Model 3
 	mode_5 = 5;				// Enable sin drive track signal
 	mode_adaptive_off = 6;	// Disable adaptive control
 	mode_adaptive = 7;		// Enable adaptive control
@@ -698,7 +710,7 @@ void set_mode_strings(void){
 	mode_16 = 16;			// Enable load disturbance function mode
 	mode_17 = 17;			// Enable noise disturbance function step mode
 	mode_18 = 18;			// Enable sensitivity function step mode
-	mode_19 = 19;			// Enable full system identification mode
+	mode_19 = 19;           // Enable full system identification mode
 	mode_quit = 0;			// Initiate exit from control loop
 }
 
@@ -707,26 +719,22 @@ void set_mode_strings(void){
  */
 
 void user_prompt(void){
-	sprintf(msg, "********  System Start Mode Selections  ********\n\r");
+	sprintf(msg, "\n\r********  System Start Mode Selections  ********\n\r");
 	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 	sprintf(msg, "Enter 1 at prompt for Inverted Pendulum Control\n\r");
 	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-	//sprintf(msg, "Enter 2 at prompt for Inverted Pendulum Control with Motor Speed Profile - High\n\r");
-	//HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-	//sprintf(msg, "Enter 3 at prompt for Inverted Pendulum Control with Motor Speed Profile - Low\n\r");
-	//HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-	sprintf(msg, "Enter 4 at prompt for Suspended Pendulum Control\n\r");
+	sprintf(msg, "Enter 2 at prompt for Suspended Pendulum Control\n\r");
 	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 	sprintf(msg, "Enter 's' at prompt for Single PID: With Prompts for Pendulum Controller Gains\n\r");
 	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-	sprintf(msg, "Enter 'g' at prompt for General Mode: With Prompts for Both Pendulum and Rotor Controller Gains\n\r");
+	sprintf(msg, "Enter 'g' at prompt for General Mode: With Prompts for Full State Feedback and PID Controller Gains\n\r");
 	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 	sprintf(msg, "Enter 't' at prompt for Test Mode: Test of Rotor Actuator and Pendulum Angle Encoder\n\r");
 	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 	sprintf(msg, "Enter 'r' at prompt for Rotor Control Mode: Direct Control of Rotor Actuator\n\r");
 	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-	sprintf(msg, "Enter 'c' at prompt for Motor Control Characterization Mode\n\r");
-	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+	//  sprintf(msg, "Enter 'c' at prompt for Motor Control Characterization Mode\n\r");
+	//  HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 	//	sprintf(msg, "Enter 'z' at prompt for High Speed Mode: Test of Rotor Actuator and Pendulum Angle Encoder\n\r");
 	//	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 	//	sprintf(msg, "Enter 'l' at prompt for Load Disturbance Sensitivity Function Mode\n\r");
@@ -737,8 +745,8 @@ void user_prompt(void){
 	//	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 	//	sprintf(msg, "Enter 'M' at prompt for Plant Disturbance Step Mode\n\r");
 	//	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-	sprintf(msg, "Enter 'I' at prompt for Full System Identification Mode\n\r");
-	HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+	// sprintf(msg, "Enter 'I' at prompt for Full System Identification Mode\n\r");
+	// HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 }
 
 /*
@@ -768,6 +776,8 @@ void get_user_mode_index(char * user_string, int * char_mode_select, int * mode_
 		*mode_index = 12;
 		*char_mode_select = 1;
 	}
+
+	/* Motor Characterization Option */
 
 	if (strcmp(user_string,mode_string_mode_motor_characterization_mode)==0){
 		*mode_index = 13;
@@ -804,21 +814,9 @@ void get_user_mode_index(char * user_string, int * char_mode_select, int * mode_
 		*mode_index = mode_1;
 		break;
 
-	//case 2:
-	//	*mode_index = mode_2;
-	//	break;
-
-	//case 3:
-	//	*mode_index = mode_3;
-	//	break;
-
-	case 4:
-		*mode_index = mode_4;
+	case 2:
+		*mode_index = mode_2;
 		break;
-
-	//case 7:
-	//	*mode_index = mode_adaptive;
-	//	break;
 
 	case 8:
 		*mode_index = mode_8;
@@ -886,6 +884,7 @@ void user_configuration(void){
 	enable_noise_rejection_step = 0;
 	enable_sensitivity_fnc_step = 0;
 
+
 	while (1){
 		RxBuffer_WriteIdx = UART_RX_BUFFER_SIZE
 				- __HAL_DMA_GET_COUNTER(&hdma_usart2_rx);
@@ -912,9 +911,13 @@ void user_configuration(void){
 			rotor_d_gain = 		SECONDARY_DERIVATIVE_MODE_1;
 			max_speed = 		MAX_SPEED_MODE_1;
 			min_speed = 		MIN_SPEED_MODE_1;
+			enable_rotor_plant_design = 0;
+			enable_rotor_plant_gain_design = 0;
+			enable_rotor_position_step_response_cycle = 0;
+			enable_pendulum_position_impulse_response_cycle = 0;
+			enable_rotor_chirp = 0;
 			enable_mod_sin_rotor_tracking = 1;
 			L6474_SetAnalogValue(0, L6474_TVAL, TORQ_CURRENT_DEFAULT);
-			enable_rotor_position_step_response_cycle = 1;
 			break;
 		}
 
@@ -926,7 +929,7 @@ void user_configuration(void){
 				continue;
 			}
 
-			sprintf(msg, "%s\n\r", (char*)Msg.Data);
+			sprintf(msg, "%s", (char*)Msg.Data);
 			HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 
 			get_user_mode_index((char*)Msg.Data, &char_mode_select, &mode_index, &mode_interactive);
@@ -945,6 +948,8 @@ void user_configuration(void){
 			enable_disturbance_rejection_step = 0;
 			enable_noise_rejection_step = 0;
 			enable_sensitivity_fnc_step = 0;
+			enable_rotor_plant_design = 0;
+			enable_rotor_plant_gain_design = 0;
 
 
 			switch (mode_index) {
@@ -952,6 +957,9 @@ void user_configuration(void){
 			/* Mode 1 selection */
 
 			case 1:
+				/* Flush read buffer  */
+				for (k = 0; k < SERIAL_MSG_MAXLEN; k++) { Msg.Data[k] = 0; }
+
 				enable_state_feedback = 0;
 				select_suspended_mode = 0;
 				proportional = 		PRIMARY_PROPORTIONAL_MODE_1;
@@ -962,15 +970,22 @@ void user_configuration(void){
 				rotor_d_gain = 		SECONDARY_DERIVATIVE_MODE_1;
 				max_speed = 		MAX_SPEED_MODE_1;
 				min_speed = 		MIN_SPEED_MODE_1;
+				enable_rotor_plant_design = 0;
+				enable_rotor_plant_gain_design = 0;
+
 
 				enable_mod_sin_rotor_tracking = 0;
 				enable_rotor_position_step_response_cycle = 0;
 				enable_pendulum_position_impulse_response_cycle = 0;
+				enable_rotor_chirp = 0;
+
 				sprintf(msg, "\n\rMode %i Configured", mode_index);
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg,
 						strlen(msg), HAL_MAX_DELAY);
+
 				sprintf(msg, "\n\rEnter 1 to Enable Rotor Chirp Drive; 0 to Disable: ");
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+
 				read_int(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx, &readBytes, &enable_rotor_chirp);
 				sprintf(msg, "%i", enable_rotor_chirp);
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
@@ -1032,9 +1047,12 @@ void user_configuration(void){
 
 				break;
 
-			/* Mode 2 selection */
+			/* Mode 3 selection */
 
-			case 2:
+			case 3:
+				/* Flush read buffer  */
+				for (k = 0; k < SERIAL_MSG_MAXLEN; k++) { Msg.Data[k] = 0; }
+
 				enable_state_feedback = 0;
 				select_suspended_mode = 0;
 				proportional = 		PRIMARY_PROPORTIONAL_MODE_2;
@@ -1045,6 +1063,9 @@ void user_configuration(void){
 				rotor_d_gain = 		SECONDARY_DERIVATIVE_MODE_2;
 				max_speed = 		MAX_SPEED_MODE_2;
 				min_speed = 		MIN_SPEED_MODE_2;
+				enable_rotor_plant_design = 0;
+				enable_rotor_plant_gain_design = 0;
+
 				enable_mod_sin_rotor_tracking = ENABLE_MOD_SIN_ROTOR_TRACKING;
 				enable_rotor_position_step_response_cycle = 0;
 				sprintf(msg, "\n\rMode %i Configured", mode_index);
@@ -1104,9 +1125,12 @@ void user_configuration(void){
 				}
 				break;
 
-			/* Mode 3 selection */
+			/* Mode 4 selection */
 
-			case 3:
+			case 4:
+				/* Flush read buffer  */
+				for (k = 0; k < SERIAL_MSG_MAXLEN; k++) { Msg.Data[k] = 0; }
+
 				enable_state_feedback = 0;
 				select_suspended_mode = 0;
 				proportional = 		PRIMARY_PROPORTIONAL_MODE_3;
@@ -1117,6 +1141,9 @@ void user_configuration(void){
 				rotor_d_gain = 		SECONDARY_DERIVATIVE_MODE_3;
 				max_speed = 		MAX_SPEED_MODE_3;
 				min_speed = 		MIN_SPEED_MODE_3;
+				enable_rotor_plant_design = 0;
+				enable_rotor_plant_gain_design = 0;
+
 				enable_mod_sin_rotor_tracking = 0;
 				enable_rotor_position_step_response_cycle = 0;
 				sprintf(msg, "\n\rMode %i Configured", mode_index);
@@ -1176,8 +1203,11 @@ void user_configuration(void){
 				}
 				break;
 
-			/* Mode 4 Suspended Mode selection */
-			case 4:
+			/* Mode 2 Suspended Mode selection */
+			case 2:
+				/* Flush read buffer  */
+				for (k = 0; k < SERIAL_MSG_MAXLEN; k++) { Msg.Data[k] = 0; }
+
 				enable_state_feedback = 0;
 				select_suspended_mode = 1;
 				proportional = 		PRIMARY_PROPORTIONAL_MODE_4;
@@ -1188,6 +1218,9 @@ void user_configuration(void){
 				rotor_d_gain = 		SECONDARY_DERIVATIVE_MODE_4;
 				max_speed = 		MAX_SPEED_MODE_1;
 				min_speed = 		MIN_SPEED_MODE_1;
+				enable_rotor_plant_design = 0;
+				enable_rotor_plant_gain_design = 0;
+
 				enable_mod_sin_rotor_tracking = 0;
 				enable_rotor_position_step_response_cycle = 0;
 				sprintf(msg, "\n\rMode %i Configured", mode_index);
@@ -1250,10 +1283,15 @@ void user_configuration(void){
 
 			/* Adaptive Mode selection - currently disabled */
 			case 7:
+				/* Flush read buffer  */
+				for (k = 0; k < SERIAL_MSG_MAXLEN; k++) { Msg.Data[k] = 0; }
+
 				break;
 
-			/* General mode selection requiring user specification of all configurations */
+				/* General mode selection requiring user specification of all configurations */
 			case 8:
+				/* Flush read buffer  */
+				for (k = 0; k < SERIAL_MSG_MAXLEN; k++) { Msg.Data[k] = 0; }
 
 				sprintf(msg, "\n\rEnter 0 for Dual PID - Enter 1 for State Feedback: ");
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
@@ -1271,7 +1309,7 @@ void user_configuration(void){
 					integral = 0;
 					rotor_i_gain = 0;
 
-					sprintf(msg, "\n\rEnter Pendulum Angle Proportional Gain: ");
+					sprintf(msg, "\n\rEnter Pendulum Angle Gain: ");
 					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 					read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &proportional);
 					sprintf(msg, "%0.2f", proportional);
@@ -1283,7 +1321,7 @@ void user_configuration(void){
 					sprintf(msg, "%0.2f", derivative);
 					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 
-					sprintf(msg, "\n\rEnter Rotor Angle Proportional Gain: ");
+					sprintf(msg, "\n\rEnter Rotor Angle Gain : ");
 					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 					read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &rotor_p_gain);
 					sprintf(msg, "%0.2f", rotor_p_gain);
@@ -1300,77 +1338,64 @@ void user_configuration(void){
 					read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &integral_compensator_gain);
 					sprintf(msg, "%0.2f", integral_compensator_gain);
 					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+
+					proportional = proportional * FULL_STATE_FEEDBACK_SCALE;
+					derivative = derivative * FULL_STATE_FEEDBACK_SCALE;
+					rotor_p_gain = rotor_p_gain * FULL_STATE_FEEDBACK_SCALE;
+					rotor_d_gain = rotor_d_gain * FULL_STATE_FEEDBACK_SCALE;
+					integral_compensator_gain = integral_compensator_gain * FULL_STATE_FEEDBACK_SCALE;
 				}
 
 				if (enable_state_feedback == 0){
 
-				sprintf(msg, "\n\rEnter Pendulum PID Proportional Gain: ");
-				HAL_UART_Transmit(&huart2, (uint8_t*) msg,
-						strlen(msg),
-						HAL_MAX_DELAY);
+					sprintf(msg, "\n\rEnter Pendulum PID Proportional Gain: ");
+					HAL_UART_Transmit(&huart2, (uint8_t*) msg,
+							strlen(msg),
+							HAL_MAX_DELAY);
 
-				read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &proportional);
-				sprintf(msg, "%0.2f", proportional);
-				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-
-				sprintf(msg, "\n\rEnter Pendulum PID Integral Gain: ");
-				HAL_UART_Transmit(&huart2, (uint8_t*) msg,
-						strlen(msg),
-						HAL_MAX_DELAY);
-				read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &integral);
-				sprintf(msg, "%0.2f", integral);
-				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-
-				sprintf(msg, "\n\rEnter Pendulum PID Differential Gain: ");
-				HAL_UART_Transmit(&huart2, (uint8_t*) msg,
-						strlen(msg),
-						HAL_MAX_DELAY);
-				read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &derivative);
-				sprintf(msg, "%0.2f", derivative);
-				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-
-				sprintf(msg, "\n\rEnter Rotor PID Proportional Gain: ");
-				HAL_UART_Transmit(&huart2, (uint8_t*) msg,
-						strlen(msg),
-						HAL_MAX_DELAY);
-
-				read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &rotor_p_gain);
-				sprintf(msg, "%0.2f", rotor_p_gain);
-				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-
-				sprintf(msg, "\n\rEnter Rotor PID Integral Gain: ");
-				HAL_UART_Transmit(&huart2, (uint8_t*) msg,
-						strlen(msg),
-						HAL_MAX_DELAY);
-				read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &rotor_i_gain);
-				sprintf(msg, "%0.2f", rotor_i_gain);
-				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-
-				sprintf(msg, "\n\rEnter Rotor PID Differential Gain: ");
-				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-				read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &rotor_d_gain);
-				sprintf(msg, "%0.2f", rotor_d_gain);
-				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-
-				sprintf(msg, "\n\rEnter 1 for Adaptive Mode - Enter 0 for Normal Mode: ");
-				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-				read_int(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &enable_adaptive_mode);
-				sprintf(msg, "%i", enable_adaptive_mode);
-				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-
-				if (enable_adaptive_mode == 1){
-					sprintf(msg, "\n\rEnter Adaptive Low Threshold (30): ");
-					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-					read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &adaptive_threshold_low);
-					sprintf(msg, "%0.2f", adaptive_threshold_low);
+					read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &proportional);
+					sprintf(msg, "%0.2f", proportional);
 					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 
-					sprintf(msg, "\n\rEnter Adaptive High Threshold (2): ");
+					sprintf(msg, "\n\rEnter Pendulum PID Integral Gain: ");
+					HAL_UART_Transmit(&huart2, (uint8_t*) msg,
+							strlen(msg),
+							HAL_MAX_DELAY);
+					read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &integral);
+					sprintf(msg, "%0.2f", integral);
 					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-					read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &adaptive_threshold_high);
-					sprintf(msg, "%0.2f", adaptive_threshold_high);
+
+					sprintf(msg, "\n\rEnter Pendulum PID Differential Gain: ");
+					HAL_UART_Transmit(&huart2, (uint8_t*) msg,
+							strlen(msg),
+							HAL_MAX_DELAY);
+					read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &derivative);
+					sprintf(msg, "%0.2f", derivative);
 					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-				}
+
+					sprintf(msg, "\n\rEnter Rotor PID Proportional Gain: ");
+					HAL_UART_Transmit(&huart2, (uint8_t*) msg,
+							strlen(msg),
+							HAL_MAX_DELAY);
+
+					read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &rotor_p_gain);
+					sprintf(msg, "%0.2f", rotor_p_gain);
+					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+
+					sprintf(msg, "\n\rEnter Rotor PID Integral Gain: ");
+					HAL_UART_Transmit(&huart2, (uint8_t*) msg,
+							strlen(msg),
+							HAL_MAX_DELAY);
+					read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &rotor_i_gain);
+					sprintf(msg, "%0.2f", rotor_i_gain);
+					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+
+					sprintf(msg, "\n\rEnter Rotor PID Differential Gain: ");
+					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+					read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &rotor_d_gain);
+					sprintf(msg, "%0.2f", rotor_d_gain);
+					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+
 
 				}
 
@@ -1468,6 +1493,13 @@ void user_configuration(void){
 				read_int(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &enable_disturbance_rejection_step);
 				sprintf(msg, "%i", enable_disturbance_rejection_step);
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+				if (enable_disturbance_rejection_step == 1) {
+					enable_sensitivity_fnc_step = 0;
+					enable_rotor_position_step_response_cycle = 1;
+					enable_noise_rejection_step = 0;
+				}
+
+
 
 				if (enable_disturbance_rejection_step == 0){
 					sprintf(msg, "\n\rEnter 1 to Enable Noise Rejection Sensitivity Function Analysis; 0 to Disable: ");
@@ -1475,6 +1507,11 @@ void user_configuration(void){
 					read_int(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &enable_noise_rejection_step);
 					sprintf(msg, "%i", enable_noise_rejection_step);
 					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+					if (enable_noise_rejection_step == 1) {
+						enable_sensitivity_fnc_step = 0;
+						enable_rotor_position_step_response_cycle = 1;
+						enable_disturbance_rejection_step = 0;
+					}
 				}
 
 				if (enable_noise_rejection_step == 0 && enable_disturbance_rejection_step == 0){
@@ -1483,6 +1520,11 @@ void user_configuration(void){
 					read_int(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &enable_sensitivity_fnc_step);
 					sprintf(msg, "%i", enable_sensitivity_fnc_step);
 					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+					if (enable_sensitivity_fnc_step == 1) {
+						enable_rotor_position_step_response_cycle = 1;
+						enable_disturbance_rejection_step = 0;
+						enable_noise_rejection_step = 0;
+					}
 				}
 
 				/*
@@ -1499,32 +1541,144 @@ void user_configuration(void){
 					integral_compensator_gain = -integral_compensator_gain;
 				}
 
-				sprintf(msg, "\n\rEnter Torque Current mA (default is 800): ");
+				/*
+				 * Rotor Plant Design is enabled for selection of Full State
+				 * Feedback and Integral Action
+				 */
+
+
+				enable_rotor_plant_design = 0;
+				enable_rotor_plant_gain_design = 0;
+				/* Optional addition of rotor plant gain specification
+				sprintf(msg, "\n\rEnter 1 for Rotor Plant Gain Design Grotor = Gain/(s*s) ");
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-				read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &torq_current_val);
-				if (torq_current_val == 0){
-					torq_current_val = 800;
+				read_int(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &enable_rotor_plant_gain_design);
+				if (enable_rotor_plant_gain_design == 1){
+					sprintf(msg, "\n\rEnter Rotor Plant Gain of Minimum 0.1 and Maximum 5: ");
+					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+					read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &rotor_plant_gain);
+					if (rotor_plant_gain > 5){
+						rotor_plant_gain = 5;
+					}
+					if (rotor_plant_gain < 0.1){
+						rotor_plant_gain = 0.1;
+					}
+					sprintf(msg, "%0.2f", rotor_plant_gain);
+					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 				}
-				sprintf(msg, "%0.2f", torq_current_val);
-				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+				*/
+
+
+				if (enable_rotor_plant_gain_design == 0){
+					sprintf(msg, "\n\rEnter 1 for Rotor Plant Design Grotor = Wn^2/(s^2 + 2D*s + Wn^2) ");
+					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+					read_int(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &enable_rotor_plant_design);
+					if (enable_rotor_plant_design == 1) {
+						if (select_suspended_mode == 1){
+							sprintf(msg, "\n\rEnter Natural Frequency (rad/sec) of Minimum 0 and Maximum 10 for Suspended Mode: ");
+							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+							read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &rotor_natural_frequency);
+							if (rotor_natural_frequency > 10){
+								rotor_natural_frequency = 10;
+							}
+							if (rotor_natural_frequency < 0){
+								rotor_natural_frequency = 0;
+							}
+
+							sprintf(msg, "%0.2f", rotor_natural_frequency);
+							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+
+							sprintf(msg, "\n\rEnter Rotor Damping Coefficient of Minimum 0.0 and Maximum 5 : ");
+							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+							read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &rotor_damping_coefficient);
+							if (rotor_damping_coefficient > 5){
+								rotor_damping_coefficient = 5;
+							}
+
+							if (rotor_damping_coefficient < 0.0){
+								rotor_damping_coefficient = 0.0;
+							}
+							sprintf(msg, "\n\rEnter Rotor Plant Gain of Minimum 0.1 and Maximum 1 : ");
+							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+							read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &rotor_plant_gain);
+							if (rotor_plant_gain > 1){
+								rotor_plant_gain = 1;
+							}
+							if (rotor_plant_gain < 0.1){
+								rotor_plant_gain = 0.1;
+							}
+							sprintf(msg, "%0.2f", rotor_plant_gain);
+
+						}
+
+						if (select_suspended_mode == 0){
+							sprintf(msg, "\n\rEnter Natural Frequency (rad/sec) of Minimum 0.0 and Maximum 5 for Inverted Mode: ");
+							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+							read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &rotor_natural_frequency);
+							if (rotor_natural_frequency > 5){
+								rotor_natural_frequency = 5;
+							}
+							if (rotor_natural_frequency <= 0.0){
+								rotor_natural_frequency = 0.0;
+							}
+
+							sprintf(msg, "%0.2f", rotor_natural_frequency);
+							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+
+							sprintf(msg, "\n\rEnter Rotor Damping Coefficient of Minimum 0.0 and Maximum 5 : ");
+							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+							read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &rotor_damping_coefficient);
+							if (rotor_damping_coefficient > 5){
+								rotor_damping_coefficient = 5;
+							}
+
+							if (rotor_damping_coefficient < 0.0){
+								rotor_damping_coefficient = 0.0;
+							}
+							sprintf(msg, "%0.2f", rotor_damping_coefficient);
+							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+
+							sprintf(msg, "\n\rRotor Plant Gain 1 for Inverted Mode Design is 1 ");
+							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+							rotor_plant_gain = 1;
+						}
+					}
+				}
+
+				torq_current_val = 800;
+
+				if (ENABLE_TORQUE_CURRENT_ENTRY == 1){
+					sprintf(msg, "\n\rEnter Torque Current mA (default is 800): ");
+					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+					read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &torq_current_val);
+					if (torq_current_val == 0){
+						torq_current_val = 800;
+					}
+
+					sprintf(msg, "%0.2f", torq_current_val);
+					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
+				}
 
 				sprintf(msg, "\n\rPendulum PID Gains: \tP: %.02f; I: %.02f; D: %.02f", proportional, integral, derivative);
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg,strlen(msg),HAL_MAX_DELAY);
 				sprintf(msg, "\n\rRotor PID Gains: \tP: %.02f; I: %.02f; D: %.02f", rotor_p_gain, rotor_i_gain, rotor_d_gain);
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg,strlen(msg),HAL_MAX_DELAY);
 				if (select_suspended_mode == 1){
-					sprintf(msg, "\n\rSuspended Mode gains must be negative");
+					sprintf(msg, "\n\rSuspended Mode gain values must be negative or zero");
 					HAL_UART_Transmit(&huart2, (uint8_t*) msg,strlen(msg),HAL_MAX_DELAY);
 				}
-				max_speed = 		MAX_SPEED_MODE_1;
-				min_speed = 		MIN_SPEED_MODE_1;
+
+			max_speed = 		MAX_SPEED_MODE_1;
+			min_speed = 		MIN_SPEED_MODE_1;
 
 
-				break;
+			break;
 
 				/* Interactive entry of Pendulum Controller gains for Single PID Inverted Mode */
 
 				case 10:
+					/* Flush read buffer  */
+					for (k = 0; k < SERIAL_MSG_MAXLEN; k++) { Msg.Data[k] = 0; }
 
 					enable_state_feedback = 0;
 
@@ -1574,6 +1728,9 @@ void user_configuration(void){
 					enable_rotor_position_step_response_cycle = 0;
 					enable_mod_sin_rotor_tracking = 0;
 					enable_rotor_chirp = 0;
+
+					enable_rotor_plant_design = 0;
+					enable_rotor_plant_gain_design = 0;
 
 					sprintf(msg, "\n\rEnter 1 to Enable Rotor Chirp Drive; 0 to Disable: ");
 					HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
@@ -1768,60 +1925,53 @@ void user_configuration(void){
 						full_sysid_max_freq_hz = 0;
 						full_sysid_num_freqs = 0;
 
-						sprintf(msg, "\n\r *** Starting System Identification (using frequency \"comb\") ***\n\r ");
+						sprintf(msg, "\n\r *** Starting Suspended Mode System Identification (using frequency \"comb\") ***\n\r ");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 
-						sprintf(msg, "\n\rEnter maximum velocity amplitude in deg/s (default 150 deg/s): ");
+						sprintf(msg, "\n\rEnter maximum velocity amplitude in deg/s (default 150 Hz maximum 150 deg/s): ");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg,strlen(msg), HAL_MAX_DELAY);
 						read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &full_sysid_max_vel_amplitude_deg_per_s);
-						full_sysid_max_vel_amplitude_deg_per_s = fabsf(full_sysid_max_vel_amplitude_deg_per_s);
 						if (full_sysid_max_vel_amplitude_deg_per_s == 0) {
+							full_sysid_max_vel_amplitude_deg_per_s = 150;
+						}
+						if (full_sysid_max_vel_amplitude_deg_per_s >= 150) {
 							full_sysid_max_vel_amplitude_deg_per_s = 150;
 						}
 						sprintf(msg, "%.02f", full_sysid_max_vel_amplitude_deg_per_s);
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-						if (full_sysid_max_vel_amplitude_deg_per_s > 270) {
-							full_sysid_max_vel_amplitude_deg_per_s = 270;
-							sprintf(msg, "\n\rCapping max velocity at %.02f deg/s", full_sysid_max_vel_amplitude_deg_per_s);
-							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
-						}
 
-						sprintf(msg, "\n\rEnter minimum frequency for input signal in Hz (default 0.2 Hz): ");
+						sprintf(msg, "\n\rEnter minimum frequency for input signal in Hz (default 0.2 Hz maximum 20 Hz): ");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 						read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &full_sysid_min_freq_hz);
-						full_sysid_min_freq_hz = fabsf(full_sysid_min_freq_hz);
 						if (full_sysid_min_freq_hz == 0) {
 							full_sysid_min_freq_hz = 0.2;
 						}
-						sprintf(msg, "%.02f", full_sysid_min_freq_hz);
-						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 						if (full_sysid_min_freq_hz > 20) {
 							full_sysid_min_freq_hz = 20;
-							sprintf(msg, "\n\rCapping min frequency at %.02f Hz", full_sysid_min_freq_hz);
-							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 						}
+						sprintf(msg, "%.02f", full_sysid_min_freq_hz);
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 
-						sprintf(msg, "\n\rEnter maximum frequency for input signal in Hz (default 5 Hz): ");
+						sprintf(msg, "\n\rEnter maximum frequency for input signal in Hz (default 5 Hz maximum 20 Hz): ");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 						read_float(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx , &readBytes, &full_sysid_max_freq_hz);
-						full_sysid_max_freq_hz = fabsf(full_sysid_max_freq_hz);
 						if (full_sysid_max_freq_hz == 0) {
 							full_sysid_max_freq_hz = 5;
 						}
-						sprintf(msg, "%.02f", full_sysid_max_freq_hz);
-						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 						if (full_sysid_max_freq_hz > 20) {
 							full_sysid_max_freq_hz = 20;
-							sprintf(msg, "\n\rCapping max frequency at %.02f Hz", full_sysid_max_freq_hz);
-							HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 						}
+						sprintf(msg, "%.02f", full_sysid_max_freq_hz);
+						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 
-						sprintf(msg, "\n\rEnter the number of frequency steps (default 11): ");
+						sprintf(msg, "\n\rEnter the number of frequency steps (default 11 maximum 20): ");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
 						read_int(&RxBuffer_ReadIdx, &RxBuffer_WriteIdx, &readBytes, &full_sysid_num_freqs);
-						full_sysid_num_freqs = abs(full_sysid_num_freqs);
 						if (full_sysid_num_freqs == 0) {
 							full_sysid_num_freqs = 11;
+						}
+						if (full_sysid_num_freqs > 20) {
+							full_sysid_num_freqs = 20;
 						}
 						sprintf(msg, "%i", full_sysid_num_freqs);
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
@@ -1848,7 +1998,7 @@ void user_configuration(void){
 						}
 
 						sprintf(msg, "\n\rThe input signal will start when \"Log Data\" is activated from the Real-Time Workbench. "
-									 "Alternatively, enter '>' and hit return once system starts.\n\r");
+								"Alternatively, enter '>' and hit return once system starts.\n\r");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg,strlen(msg), HAL_MAX_DELAY);
 						sprintf(msg, "\n\rPress enter to proceed");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg,strlen(msg), HAL_MAX_DELAY);
@@ -1872,7 +2022,7 @@ void user_configuration(void){
 						max_speed = 		MAX_SPEED_MODE_1;
 						min_speed = 		MIN_SPEED_MODE_1;
 						enable_rotor_position_step_response_cycle = 0;
-						enable_mod_sin_rotor_tracking = 1;
+						enable_mod_sin_rotor_tracking = 0;
 						L6474_SetAnalogValue(0, L6474_TVAL, TORQ_CURRENT_DEFAULT);
 						sprintf(msg, "\n\rDefault Mode 1 Configured");
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg,

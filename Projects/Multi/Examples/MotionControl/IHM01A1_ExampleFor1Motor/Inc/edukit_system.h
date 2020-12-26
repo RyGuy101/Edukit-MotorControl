@@ -76,6 +76,7 @@
  *
  */
 
+/* Define value for 800 Hz Mode is 800 */
 #define ENABLE_800Hz_MODE 0
 //#define ENABLE_800Hz
 #ifdef ENABLE_800Hz
@@ -101,11 +102,16 @@
 #endif
 
 
-#define ENABLE_HIGH_SPEED_SAMPLING_MODE 0
+#define ENABLE_HIGH_SPEED_SAMPLING_MODE 			0
+#define SAMPLE_BAUD_RATE							230400
 
-#define STEPPER_READ_POSITION_STEPS_PER_DEGREE 		8.8889	//	Stepper position read value in steps per degree
+#define CONTROLLER_GAIN_SCALE 						1
+#define STEPPER_READ_POSITION_STEPS_PER_DEGREE 		8.888889	//	Stepper position read value in steps per degree
 #define STEPPER_CONTROL_POSITION_STEPS_PER_DEGREE 	STEPPER_READ_POSITION_STEPS_PER_DEGREE
-#define ENCODER_READ_ANGLE_SCALE 					6.6667 // Angle Scale 6.66667 for 600 Pulse Per Rev Resolution Optical Encoder
+#define ENCODER_READ_ANGLE_SCALE 					6.666667 // Angle Scale 6.66667 for 600 Pulse Per Rev Resolution Optical Encoder
+#define FULL_STATE_FEEDBACK_SCALE 					1 //STEPPER_READ_POSITION_STEPS_PER_DEGREE*2 	// Scale factor for Full State Feedback Architecture
+
+#define ENABLE_DELAY_TOLERANCE						0  	// Enables stepper actuator halt for small amplitude control inputs
 
 #define ENCODER_ANGLE_POLARITY -1.0				// Note that physical system applies negative polarity to pendulum angle
 												// by definition of coordinate system.
@@ -135,28 +141,25 @@
  * Configuration of Motor Speed Profile at initialization
  */
 
-#define MAX_SPEED 1000
-#define MIN_SPEED 400
+#define MAX_SPEED 2000
+#define MIN_SPEED 800
 #define MAX_ACCEL 6000
 #define MAX_DECEL 6000
 
-/*
- * ONLY MODE 1 SUPPORTED
- */
-
-#define MAX_SPEED_MODE_2 1000
-#define MIN_SPEED_MODE_2 500
+#define MAX_SPEED_MODE_2 2000
+#define MIN_SPEED_MODE_2 1000
 #define MAX_SPEED_MODE_1 2000
 #define MIN_SPEED_MODE_1 800
-#define MAX_SPEED_MODE_3 1000
-#define MIN_SPEED_MODE_3 300
-#define MAX_SPEED_MODE_4 1000
-#define MIN_SPEED_MODE_4 200
-#define MAX_SPEED_MODE_5 1000
-#define MIN_SPEED_MODE_5 400
+#define MAX_SPEED_MODE_3 2000
+#define MIN_SPEED_MODE_3 600
+#define MAX_SPEED_MODE_4 2000
+#define MIN_SPEED_MODE_4 400
+#define MAX_SPEED_MODE_5 2000
+#define MIN_SPEED_MODE_5 800
 
 #define TORQ_CURRENT_DEFAULT 800				// Default torque current
 
+#define ENABLE_SPEED_PRESCALE 0					// Default of 1 enables rotor control limit for small error value
 
 #define ROTOR_POSITION_MAX_DIFF 500 			// Limit of maximum permitted difference in motor command values on successive cycles
 
@@ -176,12 +179,9 @@
  *
  */
 
-#define PRIMARY_WINDUP_LIMIT 100				// Integrator wind up limits for PID controllers
-#define SECONDARY_WINDUP_LIMIT 100				// Integrator wind up limits for PID controllers
-
-#define ENABLE_LIMITER 1
-#define LIMITER_THRESHOLD 2
-#define LIMITER_SLOPE 8
+#define ENABLE_PID_INTEGRATOR_LIMIT 0			// Enable PID filter integrator limit
+#define PRIMARY_WINDUP_LIMIT 1000				// Integrator wind up limits for PID controllers
+#define SECONDARY_WINDUP_LIMIT 1000				// Integrator wind up limits for PID controllers
 
 /*
  * High Speed Mode Values: 5, 25, 30
@@ -189,65 +189,63 @@
 #define DERIVATIVE_LOW_PASS_CORNER_FREQUENCY 10  		// 10 - Corner frequency of low pass filter of Primary PID derivative
 #define LP_CORNER_FREQ_ROTOR 20 						// 20 - Corner frequency of low pass filter of Rotor Angle
 #define DERIVATIVE_LOW_PASS_CORNER_FREQUENCY_ROTOR 50 	// 50 - Corner frequency of low pass filter of Secondary PID derivative
-#define LP_NOISE_REJECTION_FILTER 25					// 10 - Corner frequency of low pass anti-aliasing filter operating on
+#define LP_NOISE_REJECTION_FILTER 50					// 10 - Corner frequency of low pass anti-aliasing filter operating on
 														// noise rejection signal
 
 /* Mode 1 is Dual PID Demonstration Mode */
 
-#define PRIMARY_PROPORTIONAL_MODE_1 	40.00
+#define PRIMARY_PROPORTIONAL_MODE_1 	300
 #define PRIMARY_INTEGRAL_MODE_1     	0.0
-#define PRIMARY_DERIVATIVE_MODE_1   	5.44
+#define PRIMARY_DERIVATIVE_MODE_1   	30
 
-#define SECONDARY_PROPORTIONAL_MODE_1 	3.00
+#define SECONDARY_PROPORTIONAL_MODE_1 	15.0
 #define SECONDARY_INTEGRAL_MODE_1     	0.0
-#define SECONDARY_DERIVATIVE_MODE_1   	1.5
+#define SECONDARY_DERIVATIVE_MODE_1   	7.5
 
-#define PRIMARY_PROPORTIONAL_MODE_2 	40.0
+#define PRIMARY_PROPORTIONAL_MODE_2 	518.0
 #define PRIMARY_INTEGRAL_MODE_2     	0
-#define PRIMARY_DERIVATIVE_MODE_2   	5.44
+#define PRIMARY_DERIVATIVE_MODE_2   	57.0
 
-#define SECONDARY_PROPORTIONAL_MODE_2 	3.0
-#define SECONDARY_INTEGRAL_MODE_2     	0
-#define SECONDARY_DERIVATIVE_MODE_2   	1.5
+#define SECONDARY_PROPORTIONAL_MODE_2 	2.20
+#define SECONDARY_INTEGRAL_MODE_2     	0.0
+#define SECONDARY_DERIVATIVE_MODE_2   	4.82
 
-#define PRIMARY_PROPORTIONAL_MODE_3 	40.0
+#define PRIMARY_PROPORTIONAL_MODE_3 	300
 #define PRIMARY_INTEGRAL_MODE_3     	0.0
-#define PRIMARY_DERIVATIVE_MODE_3   	5.44
+#define PRIMARY_DERIVATIVE_MODE_3   	30.0
 
-#define SECONDARY_PROPORTIONAL_MODE_3 	3.0
+#define SECONDARY_PROPORTIONAL_MODE_3 	15.0
 #define SECONDARY_INTEGRAL_MODE_3     	0.0
-#define SECONDARY_DERIVATIVE_MODE_3   	1.5
+#define SECONDARY_DERIVATIVE_MODE_3   	15.0
 
-#define PRIMARY_PROPORTIONAL_MODE_5 	40.0
+#define PRIMARY_PROPORTIONAL_MODE_5 	300
 #define PRIMARY_INTEGRAL_MODE_5     	0.0
-#define PRIMARY_DERIVATIVE_MODE_5   	5.44
+#define PRIMARY_DERIVATIVE_MODE_5   	30.0
 
-#define SECONDARY_PROPORTIONAL_MODE_5 	3.0
+#define SECONDARY_PROPORTIONAL_MODE_5 	15.0
 #define SECONDARY_INTEGRAL_MODE_5     	0.0
-#define SECONDARY_DERIVATIVE_MODE_5   	1.5
+#define SECONDARY_DERIVATIVE_MODE_5   	15.0
 
 /*
  * Single PID Mode Gains
  */
 
-#define ROTOR_PID_PROPORTIONAL_GAIN_SINGLE_PID_MODE  3.0
+#define ROTOR_PID_PROPORTIONAL_GAIN_SINGLE_PID_MODE  15.0
 #define ROTOR_PID_INTEGRAL_GAIN_SINGLE_PID_MODE		 0.0
-#define ROTOR_PID_DIFFERENTIAL_GAIN_SINGLE_PID_MODE	 1.5
+#define ROTOR_PID_DIFFERENTIAL_GAIN_SINGLE_PID_MODE	 15.0
 
 /*
  * Mode 4 is Dual PID Suspended Demonstration Mode
  */
 
-#define PRIMARY_PROPORTIONAL_MODE_4 	-0.95
+#define PRIMARY_PROPORTIONAL_MODE_4 	-10.0
 #define PRIMARY_INTEGRAL_MODE_4     	 0.0
-#define PRIMARY_DERIVATIVE_MODE_4   	-0.11
+#define PRIMARY_DERIVATIVE_MODE_4   	-5.0
 
-#define SECONDARY_PROPORTIONAL_MODE_4 	-2.07
+#define SECONDARY_PROPORTIONAL_MODE_4 	-2.0
 #define SECONDARY_INTEGRAL_MODE_4     	 0.0
-#define SECONDARY_DERIVATIVE_MODE_4   	-0.31
+#define SECONDARY_DERIVATIVE_MODE_4   	-2.0
 
-
-#define STATE_FEEDBACK_CONFIG_ENABLE 1			// Default selection of Dual PID Architecture - Set to 1 for State Feedback			1
 
 #define DEFAULT_START_MODE	mode_1
 
@@ -279,19 +277,28 @@
 #define ENABLE_CONTROL_ACTION 1							// Enable control operation - default value of 1 (may be disabled for test operations)
 #define ENABLE_DUAL_PID 1						// Note ENABLE_DUAL_PID is set to 1 by default for summation of PID controllers
 												// for either Dual PID or LQR systems
-#define ENABLE_ENCODER_ANGLE_SLOPE_CORRECTION 0			// Set to 1 for PID // 0 LQR // 0 for Susp-Mode
-#define LP_CORNER_FREQ_LONG_TERM 0.05					// Set to 0.05 for PID and for LQR
+
+#define STATE_FEEDBACK_CONFIG_ENABLE 1			// Default selection of Dual PID Architecture - Set to 1 for State Feedback			1
+
+/*
+ * ENCODER ANGLE SLOPE CORRECTION compensates for any error introduced by a platform tilt relative to vertical.
+ * The correction is computed over a time constant of greater than 100 seconds to avoid any distortion in measurements
+ * that are conducted over shorter intervals of up to 10 seconds.
+ */
+#define ENABLE_ENCODER_ANGLE_SLOPE_CORRECTION 	1		// Default 1 for system operation enable
+#define OFFSET_FILTER_GAIN 						1		// Offset compensation gain value
+#define LP_CORNER_FREQ_LONG_TERM 0.005					// Corner frequency of low pass filter - default to 0.001
 #define ENCODER_ANGLE_SLOPE_CORRECTION_SCALE 200		// Set to 200
 #define ENCODER_ANGLE_SLOPE_CORRECTION_CYCLE_LIMIT	0	// Sets limit on operation time for slope angle correction
 														// If set to zero, slope correction operates at all times
-														// Default set to zer
+														// Default set to zero
 /*
  * Rotor position limits are defined to limit rotor rotation to one full rotation in clockwise or
  * counterclockwise motion.
  */
 
-#define ROTOR_POSITION_POSITIVE_LIMIT 360		// Maximum allowed rotation in positive angle in degrees
-#define ROTOR_POSITION_NEGATIVE_LIMIT -360		// Minimum allowed rotation in negative angle in degrees
+#define ROTOR_POSITION_POSITIVE_LIMIT 200		// Maximum allowed rotation in positive angle in degrees
+#define ROTOR_POSITION_NEGATIVE_LIMIT -200		// Minimum allowed rotation in negative angle in degrees
 
 /*
  * Encoder position limits are defined to detect excursions in pendulum angle corresponding to
@@ -301,6 +308,7 @@
 #define ENCODER_POSITION_POSITIVE_LIMIT  60		// Maximum allowed rotation in positive angle in steps
 #define ENCODER_POSITION_NEGATIVE_LIMIT -60		// Minimum allowed rotation in negative angle in steps
 
+#define ENABLE_TORQUE_CURRENT_ENTRY		0		// Enables user input of torque current configuration in general mode
 /*
  * Setting ENABLE_MOD_SIN_ROTOR_TRACKING to 1 enables a Rotor Position tracking command in the
  * form of an amplitude modulated sine wave signal
@@ -310,41 +318,36 @@
  */
 
 #define ENABLE_MOD_SIN_ROTOR_TRACKING 1		// If selected, disable all other modulation inputs
-#define MOD_SIN_CARRIER_FREQ 0.15			// 0.003 default
-#define MOD_SIN_START_CYCLES 4000			// 10000 default
-#define MOD_SIN_AMPLITUDE 600				// 600 default
-#define MOD_SIN_MODULATION_FREQ  0.02		// 0.001 default
-#define MOD_SIN_MODULATION_MIN 100			// Default 100
+#define MOD_SIN_CARRIER_FREQ 0.15			// 0.15 default
+#define MOD_SIN_START_CYCLES 5000			// 5000 default
+#define MOD_SIN_AMPLITUDE 400				// 400 default
+#define MOD_SIN_MODULATION_FREQ  0.02		// 0.02 default
+#define MOD_SIN_MODULATION_MIN 0			// Default 0
 /* Define for High Speed System */
-#define MOD_SIN_SAMPLE_RATE 500.0			// 500.0 default for Low Speed
+#define MOD_SIN_SAMPLE_RATE 500.0			// 500.0 default
 #define ENABLE_SIN_MOD 1					// 1 default
 
 #define ENABLE_ROTOR_CHIRP 0				// If selected, disable all other modulation inputs
-#define ROTOR_CHIRP_START_FREQ 0.001		// 0.001 default
-#define ROTOR_CHIRP_END_FREQ 20				// 5 default
+#define ROTOR_CHIRP_START_FREQ 0.01			// 0.001 default
+#define ROTOR_CHIRP_END_FREQ 15				// 5 default
 #define ROTOR_CHIRP_PERIOD 20000			// 20000 default
-#define ROTOR_CHIRP_SWEEP_DELAY 5000		// 5000 default - enables control system to recover between sweeps
+#define ROTOR_CHIRP_SWEEP_DELAY 1000		// 0 default - enables control system to recover between sweeps
 /* Define for High Speed System */
 #define ROTOR_CHIRP_SAMPLE_RATE 500.0		// 500.0 default for Low Speed
 #define ROTOR_CHIRP_START_CYCLES 0			// 0 default
-#define ROTOR_CHIRP_STEP_AMPLITUDE 1  		// 0.3 default
+#define ROTOR_CHIRP_STEP_AMPLITUDE 2  		// 0.3 default
 
 #define ENABLE_ROTOR_TRACK_COMB_SIGNAL 0				// If selected, disable all other modulation inputs
-#define ROTOR_TRACK_COMB_SIGNAL_PERIOD 50000			// 50000 default
-#define ROTOR_TRACK_DELAY 10000							// 10000 default - enables control system to recover between sweeps
-/* Define for High Speed System */
 #define ROTOR_TRACK_COMB_SIGNAL_SAMPLE_RATE 500.0		// 500.0 default for Low Speed
 #define ROTOR_TRACK_COMB_SIGNAL_START_CYCLES 0			// 0 default
-#define ROTOR_TRACK_COMB_SIGNAL_AMPLITUDE 0.25				// 0.05 default
+#define ROTOR_TRACK_COMB_SIGNAL_AMPLITUDE 5.0			// 0.05 default
 
 #define ENABLE_PENDULUM_DISPLACEMENT_DISTURBANCE 0
 #define PENDULUM_DISPLACEMENT_DISTURBANCE_CYCLE 10000
 #define PENDULUM_DISPLACEMENT_THRESHOLD_ANGLE 3
 
-
-#define ENABLE_DISTURBANCE_REJECTION_STEP 1
-#define LOAD_DISTURBANCE_SENSITIVITY_SCALE STEPPER_READ_POSITION_STEPS_PER_DEGREE*2 		// Scale factor for Load Disturbance Sensitivity Function
-#define NOISE_REJECTION_SENSITIVITY_SCALE STEPPER_READ_POSITION_STEPS_PER_DEGREE 		// Scale factor for Noise Rejection Sensitivity Function
+#define ENABLE_DISTURBANCE_REJECTION_STEP 	1
+#define LOAD_DISTURBANCE_SENSITIVITY_SCALE 	10	// Scale factor applied to increase measurement resolution for Load Disturbance Sensitivity Function
 
 /*
  * Set ENABLE_ENCODER_TEST to 1 to enable a testing of encoder response for verification
@@ -374,8 +377,8 @@
 
 #define ENABLE_ROTOR_POSITION_STEP_RESPONSE_CYCLE 1			// If selected, disable all other modulation inputs
 #define ROTOR_POSITION_STEP_RESPONSE_CYCLE_AMPLITUDE 20		// Default 8. Amplitude of step cycle. Note: Peak-to-Peak amplitude is double this value
-#define ROTOR_POSITION_STEP_RESPONSE_CYCLE_INTERVAL 10240 	// Default 10240
-#define STEP_RESPONSE_AMP_LIMIT_ENABLE 1					// Enables limit of Step Response if rotor amplitude exceeds limit
+#define ROTOR_POSITION_STEP_RESPONSE_CYCLE_INTERVAL 16384 	// Default 10240
+#define STEP_RESPONSE_AMP_LIMIT_ENABLE 0					// Enables limit of Step Response if rotor amplitude exceeds limit
 															// Useful for protecting operation if summing step and sine drive
 #define STEP_RESPONSE_AMP_LIMIT 350							// Angle limit for Step Response action
 /*
@@ -393,8 +396,8 @@
  * command input impulse signal
  */
 #define ENABLE_PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE 0		// If selected, disable all other modulation inputs
-#define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_AMPLITUDE 500	// Amplitude of step cycle. Note: Peak-to-Peak amplitude is double this value
-#define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_PERIOD 4		// Duration of impulse in cycles
+#define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_AMPLITUDE 440	// Amplitude of step cycle in steps equaling 10 degrees. Note: Peak-to-Peak amplitude is double this value
+#define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_PERIOD 2		// Duration of impulse in cycles
 #define PENDULUM_POSITION_IMPULSE_RESPONSE_CYCLE_INTERVAL 5000	// Interval between impulse events in cycles
 /* Define for High Speed System */
 #define PENDULUM_IMPULSE_SAMPLE_RATE 500 						// Default sample rate
@@ -501,11 +504,13 @@ volatile uint32_t clock_int_tick;
 volatile uint32_t desired_pwm_period;
 volatile uint32_t current_pwm_period;
 
-int32_t target_velocity_prescaled;
+float target_velocity_prescaled;
+int32_t enable_speed_prescale;
 
 /* System data reporting */
 char tmp_string[256];
 char msg[192];
+char msg_pad[64];
 char test_msg[128];
 
 /* System timing variables */
@@ -513,7 +518,11 @@ char test_msg[128];
 uint32_t tick, tick_cycle_current, tick_cycle_previous, tick_cycle_start,
 tick_read_cycle, tick_read_cycle_start,tick_wait_start,tick_wait;
 
-// uint64_t tick_cycle_target;
+volatile uint32_t current_cpu_cycle, cycle_microsecond_scale;
+volatile uint32_t current_cpu_cycle_delay_relative, current_cpu_cycle_delay_relative_report;
+volatile int current_cpu_cycle_delay_relative_int, current_cpu_cycle_delay_relative_int_report;
+
+
 
 float Tsample, Tsample_rotor, test_time;
 float angle_scale;
@@ -529,9 +538,10 @@ uint32_t RxBuffer_WriteIdx;
 uint32_t readBytes;
 
 /* Control system output signal */
-int rotor_control_target_steps;
-int rotor_control_target_steps_curr;
-int rotor_control_target_steps_prev;
+float rotor_control_target_steps;
+float rotor_control_target_steps_curr;
+float rotor_control_target_steps_prev;
+float rotor_control_target_steps_lp_filter, rotor_control_target_steps_lp_filter_prev;
 
 /* Control system variables */
 int rotor_position_delta;
@@ -569,11 +579,23 @@ float reference_tracking_command;
 /* Rotor position and tracking command */
 int rotor_position_steps;
 float rotor_position_command_steps;
+float rotor_position_command_steps_pf, rotor_position_command_steps_pf_prev;
 float rotor_position_command_deg;
 float rotor_position_steps_prev, rotor_position_filter_steps, rotor_position_filter_steps_prev;
 float rotor_position_diff, rotor_position_diff_prev;
 float rotor_position_diff_filter, rotor_position_diff_filter_prev;
 int rotor_target_in_steps;
+int initial_rotor_position;
+
+/* Rotor Plant Design variables */
+int enable_rotor_plant_design, enable_rotor_plant_gain_design;
+int rotor_control_target_steps_int;
+float rotor_damping_coefficient, rotor_natural_frequency;
+float rotor_plant_gain;
+float rotor_control_target_steps_gain;
+float rotor_control_target_steps_filter_2, rotor_control_target_steps_filter_prev_2;
+float rotor_control_target_steps_prev_prev, rotor_control_target_steps_filter_prev_prev_2;
+float c0, c1, c2, c3, c4, ao, Wn2;
 
 /* Encoder position variables */
 int encoder_position;
@@ -604,6 +626,7 @@ int rotor_position_step_polarity;
 int impulse_start_index;
 
 /* User configuration variables */
+int clear_input;
 uint32_t enable_control_action;
 int max_speed_read, min_speed_read;
 int select_suspended_mode;
@@ -644,7 +667,7 @@ float mod_sin_carrier_frequency;
 /* Pendulum impulse system variables */
 int enable_pendulum_position_impulse_response_cycle;
 
-/* Rotor hish speed test system variables */
+/* Rotor high speed test system variables */
 int swing_cycles, rotor_test_speed_min, rotor_test_speed_max;
 int rotor_test_acceleration_max, swing_deceleration_max;
 int start_angle_a[20], end_angle_a[20], motion_dwell_a[20];
@@ -718,7 +741,7 @@ int mode_15;			// Enable interactive control of rotor actuator
 int mode_16;			// Enable load disturbance function step mode
 int mode_17;			// Enable noise disturbance function step mode
 int mode_18;			// Enable sensitivity function step mode
-int mode_19;			// Enable full system identification mode
+int mode_19;            // Enable full system identification mode
 int mode_quit;			// Initiate exit from control loop
 int mode_interactive;		// Enable continued terminal interactive user session
 int mode_index_prev, mode_index_command;
@@ -790,6 +813,8 @@ char mode_string_dec_step_size[UART_RX_BUFFER_SIZE];
 char mode_string_select_mode_5[UART_RX_BUFFER_SIZE];
 char mode_string_enable_high_speed_sampling[UART_RX_BUFFER_SIZE];
 char mode_string_disable_high_speed_sampling[UART_RX_BUFFER_SIZE];
+char mode_string_enable_speed_prescale[UART_RX_BUFFER_SIZE];
+char mode_string_disable_speed_prescale[UART_RX_BUFFER_SIZE];
 
 int char_mode_select;	// Flag detecting whether character mode select entered
 
