@@ -235,7 +235,7 @@ void Main_StepClockHandler() {
 	}
 }
 
-void apply_acceleration(float * acc_f, float * target_velocity_prescaled, uint16_t sample_freq_hz) {
+void apply_acceleration(float * acc, float * target_velocity_prescaled, uint16_t sample_freq_hz) {
 	/*
 	 *  Stepper motor acceleration, speed, direction and position control developed by Ryan Nemiroff
 	 */
@@ -243,12 +243,9 @@ void apply_acceleration(float * acc_f, float * target_velocity_prescaled, uint16
 
 	uint32_t current_pwm_period_local = current_pwm_period;
 	uint32_t desired_pwm_period_local = desired_pwm_period;
-	int32_t acc;
 	/*
 	 * Add time reporting
 	 */
-
-	acc = (int)(round(*acc_f));
 
 	apply_acc_start_time = *DWT_CYCCNT;
 
@@ -269,7 +266,7 @@ void apply_acceleration(float * acc_f, float * target_velocity_prescaled, uint16
 		}	
 	}
 
-	*target_velocity_prescaled += round(L6474_Board_Pwm1PrescaleFreq(acc) / sample_freq_hz);
+	*target_velocity_prescaled += L6474_Board_Pwm1PrescaleFreq(acc) / sample_freq_hz;
 	motorDir_t new_dir = (int)(*target_velocity_prescaled) > 0 ? FORWARD : BACKWARD;
 
 	float speed_prescaled;
