@@ -1621,7 +1621,7 @@ int main(void) {
 				} else {
 					reference_tracking_command = rotor_position_command_steps;
 				}
-				sprintf(msg, "%i\t%i\t%i\t%i\t%i\r\n", cycle_period_sum - (int)(Tsample*1000000/10),
+				sprintf(msg, "%i\t%i\t%i\t%i\t%i\r\n", cycle_period_sum,
 						encoder_position, display_parameter,
 						(int)(roundf(rotor_control_target_steps)),(int)(reference_tracking_command));
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), HAL_MAX_DELAY);
@@ -1667,7 +1667,7 @@ int main(void) {
             	 *
             	 */
             	if (i % 1000 != 0){
-            		sprintf(msg, "%i\t%i\t%i\t%i\t%i\t%i\t%.1f\t%i\t%i\r\n", (int)2, cycle_period_sum - (int)(Tsample*1000000/10),
+            		sprintf(msg, "%i\t%i\t%i\t%i\t%i\t%i\t%.1f\t%i\t%i\r\n", (int)2, cycle_period_sum,
             				current_cpu_cycle_delay_relative_report,
 							encoder_position, display_parameter, (int)(pid_filter->i_term)/100,
 							rotor_position_command_steps, (int)(roundf(rotor_control_target_steps)),
