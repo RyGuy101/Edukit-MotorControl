@@ -178,9 +178,7 @@ L6474_Init_t gL6474InitParams = {
  #define PWM_COUNT_SAFETY_MARGIN 2
  #define MAXIMUM_ACCELERATION 131071
  #define MAXIMUM_DECELERATION 131071
- #define MIN_POSSIBLE_SPEED 1
  #define MAXIMUM_SPEED 131071
- #define DELAY_TOLERANCE  (RCC_SYS_CLOCK_FREQ / L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED)) // Set to the maximum PWM period
  static volatile uint16_t gLastError;
  /* Private function prototypes -----------------------------------------------*/
  static void MyFlagInterruptHandler(void);
@@ -205,13 +203,9 @@ L6474_Init_t gL6474InitParams = {
 		      );\
 } while(0)
 
- int Delay_Pulse(){
- 	if (desired_pwm_period < DELAY_TOLERANCE || enable_state_feedback == 1 || ENABLE_DELAY_TOLERANCE == 0){
- 		return 0;
- 	} else {
- 		return 1;
- 	}
- }
+int Delay_Pulse(){
+	return desired_pwm_period == UINT32_MAX;
+}
 
 /*
  * PWM pulse (step) interrupt
@@ -280,14 +274,18 @@ void apply_acceleration(float * acc, float * target_velocity_prescaled, float t_
 		speed_prescaled = *target_velocity_prescaled;
 	} else {
 		speed_prescaled = *target_velocity_prescaled * -1;
-	}
-	if (speed_prescaled < L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED)) {
-		speed_prescaled = L6474_Board_Pwm1PrescaleFreq(MIN_POSSIBLE_SPEED);
+		if (speed_prescaled == 0) speed_prescaled = 0; // convert negative 0 to positive 0
 	}
 
 
 	uint32_t effective_pwm_period = desired_pwm_period_local;
-	desired_pwm_period_local = (uint32_t)(roundf(RCC_SYS_CLOCK_FREQ / speed_prescaled));
+
+	float desired_pwm_period_float = roundf(RCC_SYS_CLOCK_FREQ / speed_prescaled);
+	if (!(desired_pwm_period_float < 4294967296.0f)) {
+		desired_pwm_period_local = UINT32_MAX;
+	} else {
+		desired_pwm_period_local = (uint32_t)(desired_pwm_period_float);
+	}
 
 	if (old_dir != new_dir) {
 		L6474_Board_SetDirectionGpio(0, new_dir);
@@ -297,7 +295,9 @@ void apply_acceleration(float * acc, float * target_velocity_prescaled, float t_
 		uint32_t pwm_count = L6474_Board_Pwm1GetCounter();
 		uint32_t pwm_time_left = current_pwm_period_local - pwm_count;
 		if (pwm_time_left > PWM_COUNT_SAFETY_MARGIN) {
-			uint32_t new_pwm_time_left = pwm_time_left * desired_pwm_period_local / effective_pwm_period;
+			// accurately calculate (pwm_time_left * desired_pwm_period_local / effective_pwm_period) without overflow:
+			uint32_t new_pwm_time_left = (pwm_time_left * (desired_pwm_period_local / effective_pwm_period))
+					+ ((pwm_time_left * (desired_pwm_period_local%effective_pwm_period)) / effective_pwm_period);
 			if (new_pwm_time_left != pwm_time_left) {
 				if (new_pwm_time_left < PWM_COUNT_SAFETY_MARGIN) {
 					new_pwm_time_left = PWM_COUNT_SAFETY_MARGIN;

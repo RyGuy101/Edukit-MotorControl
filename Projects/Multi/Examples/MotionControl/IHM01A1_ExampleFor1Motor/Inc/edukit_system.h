@@ -90,8 +90,6 @@
 #define ENCODER_READ_ANGLE_SCALE 					6.666667 // Angle Scale 6.66667 for 600 Pulse Per Rev Resolution Optical Encoder
 #define FULL_STATE_FEEDBACK_SCALE 					1 //STEPPER_READ_POSITION_STEPS_PER_DEGREE*2 	// Scale factor for Full State Feedback Architecture
 
-#define ENABLE_DELAY_TOLERANCE						0  	// Enables stepper actuator halt for small amplitude control inputs
-
 #define ENCODER_ANGLE_POLARITY -1.0				// Note that physical system applies negative polarity to pendulum angle
 												// by definition of coordinate system.
 
