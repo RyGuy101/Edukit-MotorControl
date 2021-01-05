@@ -76,31 +76,10 @@
  *
  */
 
-/* Define value for 800 Hz Mode is 800 */
-#define ENABLE_800Hz_MODE 0
-//#define ENABLE_800Hz
-#ifdef ENABLE_800Hz
-/* Define value for High Speed System is 833 */
-#define SAMPLE_FREQUENCY 833					// Set to 500 for default
-/* Define value for High Speed System is 0.0012 */
-#define T_SAMPLE_ROTOR 0.0012					// Set to 0.002 for default
-/* Define value for High Speed System is 0.0012 */
-#define T_SAMPLE 0.0012							// Set to 0.002 for default
-/* Define value for Cycle Delay for High Speed System is 0 */
-#define CYCLE_DELAY 0
-#endif
+#define RCC_SYS_CLOCK_FREQ 84000000 // should equal HAL_RCC_GetSysClockFreq()
+#define RCC_HCLK_FREQ 84000000 // should equal HAL_RCC_GetHCLKFreq()
 
-#ifndef ENABLE_800Hz
-/* Define value for High Speed System is 500 */
-#define SAMPLE_FREQUENCY 500					// Set to 500 for default
-/* Define value for High Speed System is 0.002 */
-#define T_SAMPLE_ROTOR 0.002					// Set to 0.002 for default
-/* Define value for High Speed System is 0.002 */
-#define T_SAMPLE 0.002						// Set to 0.002 for default
-/* Define value for Cycle Delay for High Speed System is 1 */
-#define CYCLE_DELAY 1
-#endif
-
+#define T_SAMPLE_DEFAULT 0.002
 
 #define ENABLE_HIGH_SPEED_SAMPLING_MODE 			0
 #define SAMPLE_BAUD_RATE							230400
@@ -515,12 +494,12 @@ char test_msg[128];
 uint32_t tick, tick_cycle_current, tick_cycle_previous, tick_cycle_start,
 tick_read_cycle, tick_read_cycle_start,tick_wait_start,tick_wait;
 
-volatile uint32_t current_cpu_cycle, cycle_microsecond_scale;
-volatile uint32_t current_cpu_cycle_delay_relative, current_cpu_cycle_delay_relative_report;
-volatile int current_cpu_cycle_delay_relative_int, current_cpu_cycle_delay_relative_int_report;
+volatile uint32_t current_cpu_cycle, prev_cpu_cycle, last_cpu_cycle, target_cpu_cycle, prev_target_cpu_cycle;
+volatile int current_cpu_cycle_delay_relative_report;
 
 
 
+uint32_t t_sample_cpu_cycles;
 float Tsample, Tsample_rotor, test_time;
 float angle_scale;
 int enable_high_speed_sampling;

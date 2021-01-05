@@ -2622,7 +2622,7 @@ void motor_actuator_characterization_mode(void){
 
 			if (i == 0) {
 				cycle_period_start = HAL_GetTick();
-				cycle_period_sum = 100 * T_SAMPLE * 1000 - 1;
+				cycle_period_sum = 100 * Tsample * 1000 - 1;
 			}
 			if (i % 100 == 0) {
 				cycle_period_sum = HAL_GetTick() - cycle_period_start;
