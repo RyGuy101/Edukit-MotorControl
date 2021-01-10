@@ -162,10 +162,12 @@
  * High Speed Mode Values: 5, 25, 30
  */
 #define DERIVATIVE_LOW_PASS_CORNER_FREQUENCY 10  		// 10 - Corner frequency of low pass filter of Primary PID derivative
-#define LP_CORNER_FREQ_ROTOR 20 						// 20 - Corner frequency of low pass filter of Rotor Angle
+#define LP_CORNER_FREQ_ROTOR 100 						// 20 - Corner frequency of low pass filter of Rotor Angle
 #define DERIVATIVE_LOW_PASS_CORNER_FREQUENCY_ROTOR 50 	// 50 - Corner frequency of low pass filter of Secondary PID derivative
 #define LP_NOISE_REJECTION_FILTER 50					// 10 - Corner frequency of low pass anti-aliasing filter operating on
 														// noise rejection signal
+#define LP_CORNER_FREQ_STEP 50							// Low pass filter operating on rotor reference step command signal
+
 
 /* Mode 1 is Dual PID Demonstration Mode */
 
@@ -378,6 +380,12 @@
 #define PENDULUM_IMPULSE_SAMPLE_RATE 500 						// Default sample rate
 
 /*
+ * DATA_REPORT_SPEED_SCALE enables reduced data rate for bandwidth constrained data acquisition systems
+ */
+
+#define DATA_REPORT_SPEED_SCALE 20
+
+/*
  * UART DMA definitions
  */
 
@@ -480,6 +488,7 @@ volatile uint32_t desired_pwm_period;
 volatile uint32_t current_pwm_period;
 
 float target_velocity_prescaled;
+int32_t enable_speed_prescale; // Currently Unused
 
 /* System data reporting */
 char tmp_string[256];
@@ -494,8 +503,6 @@ tick_read_cycle, tick_read_cycle_start,tick_wait_start,tick_wait;
 
 volatile uint32_t current_cpu_cycle, prev_cpu_cycle, last_cpu_cycle, target_cpu_cycle, prev_target_cpu_cycle;
 volatile int current_cpu_cycle_delay_relative_report;
-
-
 
 uint32_t t_sample_cpu_cycles;
 float Tsample, Tsample_rotor, test_time;
@@ -562,7 +569,7 @@ int rotor_target_in_steps;
 int initial_rotor_position;
 
 /* Rotor Plant Design variables */
-int enable_rotor_plant_design, enable_rotor_plant_gain_design;
+int select_rotor_plant_design, enable_rotor_plant_design, enable_rotor_plant_gain_design;
 int rotor_control_target_steps_int;
 float rotor_damping_coefficient, rotor_natural_frequency;
 float rotor_plant_gain;
@@ -570,6 +577,7 @@ float rotor_control_target_steps_gain;
 float rotor_control_target_steps_filter_2, rotor_control_target_steps_filter_prev_2;
 float rotor_control_target_steps_prev_prev, rotor_control_target_steps_filter_prev_prev_2;
 float c0, c1, c2, c3, c4, ao, Wn2;
+float fo_r, Wo_r, IWon_r, iir_0_r, iir_1_r, iir_2_r;
 
 /* Encoder position variables */
 int encoder_position;
@@ -581,6 +589,7 @@ int encoder_position_prev;
 float fo, Wo, IWon, iir_0, iir_1, iir_2, Wo_nr, IWon_nr, iir_0_nr, iir_1_nr, iir_2_nr;
 float fo_LT, Wo_LT, IWon_LT, fo_nr;
 float iir_LT_0, iir_LT_1, iir_LT_2;
+float fo_s, Wo_s, IWon_s, iir_0_s, iir_1_s, iir_2_s;
 
 /* Slope correction system variables */
 int slope;
@@ -692,6 +701,8 @@ int mode_index;
 
 /* Real time data reporting index */
 int report_mode;
+int speed_scale;
+int speed_governor;
 
 /*
  * User selection mode values
@@ -787,6 +798,10 @@ char mode_string_dec_step_size[UART_RX_BUFFER_SIZE];
 char mode_string_select_mode_5[UART_RX_BUFFER_SIZE];
 char mode_string_enable_high_speed_sampling[UART_RX_BUFFER_SIZE];
 char mode_string_disable_high_speed_sampling[UART_RX_BUFFER_SIZE];
+char mode_string_enable_speed_prescale[UART_RX_BUFFER_SIZE];
+char mode_string_disable_speed_prescale[UART_RX_BUFFER_SIZE];
+char mode_string_disable_speed_governor[UART_RX_BUFFER_SIZE];
+char mode_string_enable_speed_governor[UART_RX_BUFFER_SIZE];
 
 int char_mode_select;	// Flag detecting whether character mode select entered
 
