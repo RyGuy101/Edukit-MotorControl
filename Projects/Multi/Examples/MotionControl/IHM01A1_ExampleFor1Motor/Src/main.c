@@ -295,14 +295,20 @@ void apply_acceleration(float * acc, float * target_velocity_prescaled, float t_
 		uint32_t pwm_count = L6474_Board_Pwm1GetCounter();
 		uint32_t pwm_time_left = current_pwm_period_local - pwm_count;
 		if (pwm_time_left > PWM_COUNT_SAFETY_MARGIN) {
-			// accurately calculate (pwm_time_left * desired_pwm_period_local / effective_pwm_period) without overflow:
-			uint32_t new_pwm_time_left = (pwm_time_left * (desired_pwm_period_local / effective_pwm_period))
-					+ ((pwm_time_left * (desired_pwm_period_local%effective_pwm_period)) / effective_pwm_period);
+			if (old_dir != new_dir) {
+				// pwm_time_left = effective_pwm_period - pwm_time_left; // This is what should happen when switching directions, but has the side effect of creating vibrations when trying to stay stationary.
+				pwm_time_left = effective_pwm_period; // This is a more practical way to handle switching directions.
+			}
+
+			uint32_t new_pwm_time_left = ((uint64_t) pwm_time_left * desired_pwm_period_local) / effective_pwm_period;
 			if (new_pwm_time_left != pwm_time_left) {
 				if (new_pwm_time_left < PWM_COUNT_SAFETY_MARGIN) {
 					new_pwm_time_left = PWM_COUNT_SAFETY_MARGIN;
 				}
 				current_pwm_period_local = pwm_count + new_pwm_time_left;
+				if (current_pwm_period_local < pwm_count) {
+					current_pwm_period_local = UINT32_MAX;
+				}
 				L6474_Board_Pwm1SetPeriod(current_pwm_period_local);
 				current_pwm_period = current_pwm_period_local;
 			}
@@ -731,33 +737,17 @@ int main(void) {
 		 * reduce drift due to numerical error in computation without affecting transfer function
 		 */
 
-		/*
-
-		if (enable_rotor_plant_design == 1 && enable_state_feedback == 1 && (rotor_damping_coefficient != 0 || rotor_natural_frequency != 0) ){
-		Wn2 = rotor_natural_frequency * rotor_natural_frequency;
-		rotor_plant_gain = rotor_plant_gain * Wn2;
-		ao = ((2.0F/Tsample)*(2.0F/Tsample) + (2.0F/Tsample)*2.0F*rotor_damping_coefficient*rotor_natural_frequency
-				+ rotor_natural_frequency*rotor_natural_frequency);
-		c0 = ((2.0F/Tsample)*(2.0F/Tsample)/ao);
-		c1 = -2.0F * c0;
-		c2 = c0;
-		c3 = -(2.0F*rotor_natural_frequency*rotor_natural_frequency - 2.0F*(2.0F/Tsample)*(2.0F/Tsample))/ao;
-		c4 = -((2.0F/Tsample)*(2.0F/Tsample) - (2.0F/Tsample)*2.0F*rotor_damping_coefficient*rotor_natural_frequency
-				+ rotor_natural_frequency*rotor_natural_frequency)/ao;
-		}
-		*/
-
 		if (rotor_damping_coefficient != 0 || rotor_natural_frequency != 0){
-		Wn2 = rotor_natural_frequency * rotor_natural_frequency;
-		rotor_plant_gain = rotor_plant_gain * Wn2;
-		ao = ((2.0F/0.00200F)*(2.0F/0.00200F) + (2.0F/0.00200F)*2.0F*rotor_damping_coefficient*rotor_natural_frequency
-				+ rotor_natural_frequency*rotor_natural_frequency);
-		c0 = ((2.0F/0.00200F)*(2.0F/0.00200F)/ao);
-		c1 = -2.0F * c0;
-		c2 = c0;
-		c3 = -(2.0F*rotor_natural_frequency*rotor_natural_frequency - 2.0F*(2.0F/0.00200F)*(2.0F/0.00200F))/ao;
-		c4 = -((2.0F/0.00200F)*(2.0F/0.00200F) - (2.0F/0.00200F)*2.0F*rotor_damping_coefficient*rotor_natural_frequency
-				+ rotor_natural_frequency*rotor_natural_frequency)/ao;
+			Wn2 = rotor_natural_frequency * rotor_natural_frequency;
+			rotor_plant_gain = rotor_plant_gain * Wn2;
+			ao = ((2.0F/Tsample)*(2.0F/Tsample) + (2.0F/Tsample)*2.0F*rotor_damping_coefficient*rotor_natural_frequency
+					+ rotor_natural_frequency*rotor_natural_frequency);
+			c0 = ((2.0F/Tsample)*(2.0F/Tsample)/ao);
+			c1 = -2.0F * c0;
+			c2 = c0;
+			c3 = -(2.0F*rotor_natural_frequency*rotor_natural_frequency - 2.0F*(2.0F/Tsample)*(2.0F/Tsample))/ao;
+			c4 = -((2.0F/Tsample)*(2.0F/Tsample) - (2.0F/Tsample)*2.0F*rotor_damping_coefficient*rotor_natural_frequency
+					+ rotor_natural_frequency*rotor_natural_frequency)/ao;
 		}
 
 		/* Transfer function model of form 1/(s^2 + Wn*s) */
@@ -1588,17 +1578,6 @@ int main(void) {
 			}
 
 
-			if (enable_rotor_plant_design == 1 && enable_state_feedback == 1){
-					rotor_control_target_steps_filter_2 = c0*rotor_control_target_steps + c1*rotor_control_target_steps_prev
-							+ c2*rotor_control_target_steps_prev_prev + c3*rotor_control_target_steps_filter_prev_2
-							+ c4*rotor_control_target_steps_filter_prev_prev_2;
-
-					rotor_control_target_steps_prev_prev = rotor_control_target_steps_prev;
-					rotor_control_target_steps_filter_prev_prev_2 = rotor_control_target_steps_filter_prev_2;
-					rotor_control_target_steps_filter_prev_2 = rotor_control_target_steps_filter_2;
-			}
-
-
 			if ((enable_rotor_plant_design == 2 || enable_rotor_plant_design == 3)){
 				rotor_control_target_steps_filter_2 = iir_0_r*rotor_control_target_steps + iir_1_r*rotor_control_target_steps_prev
 													- iir_2_r*rotor_control_target_steps_filter_prev_2;
@@ -1619,8 +1598,7 @@ int main(void) {
 				if (enable_rotor_plant_design != 0){
 					rotor_control_target_steps_filter_2 = rotor_plant_gain*rotor_control_target_steps_filter_2;
 					apply_acceleration(&rotor_control_target_steps_filter_2, &target_velocity_prescaled, Tsample);
-				}
-				if (enable_rotor_plant_gain_design == 1){
+				} else if (enable_rotor_plant_gain_design == 1){
 					rotor_control_target_steps_gain = rotor_plant_gain * rotor_control_target_steps;
 					apply_acceleration(&rotor_control_target_steps_gain, &target_velocity_prescaled, Tsample);
 				} else {
