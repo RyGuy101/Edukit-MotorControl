@@ -301,7 +301,7 @@ void apply_acceleration(float * acc, float * target_velocity_prescaled, float t_
 			}
 
 			uint32_t new_pwm_time_left = ((uint64_t) pwm_time_left * desired_pwm_period_local) / effective_pwm_period;
-			if (new_pwm_time_left != pwm_time_left) {
+			if (*acc != 0) {
 				if (new_pwm_time_left < PWM_COUNT_SAFETY_MARGIN) {
 					new_pwm_time_left = PWM_COUNT_SAFETY_MARGIN;
 				}
